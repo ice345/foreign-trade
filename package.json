@@ -1,0 +1,51 @@
+{
+  "name": "globalpush",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.999.0",
+    "@aws-sdk/s3-request-presigner": "^3.999.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^5.9.1",
+    "@tanstack/react-query": "^5.51.1",
+    "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^11.3.30",
+    "jose": "^5.6.3",
+    "lucide-react": "^0.575.0",
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-hook-form": "^7.52.2",
+    "recharts": "^3.7.0",
+    "resend": "^6.9.2",
+    "sonner": "^1.5.0",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.19.34",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "autoprefixer": "^10.4.19",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.5",
+    "postcss": "^8.4.39",
+    "prisma": "^5.9.1",
+    "tailwindcss": "^3.4.6",
+    "tsx": "^4.17.0",
+    "typescript": "^5.9.3"
+  }
+}

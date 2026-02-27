@@ -1,0 +1,26 @@
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireUser } from "@/lib/auth"
+
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const user = await requireUser()
+
+    const notification = await prisma.notification.findUnique({
+      where: { id: params.id }
+    })
+
+    if (!notification || notification.userId !== user.id) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+
+    await prisma.notification.update({
+      where: { id: params.id },
+      data: { read: true }
+    })
+
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+}

@@ -1,0 +1,37 @@
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { Search } from "lucide-react";
+
+export default function SearchBar() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const [query, setQuery] = useState(params.get("q") ?? "");
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        router.push(`/search?q=${encodeURIComponent(query)}`);
+      }}
+      className="flex w-full max-w-2xl flex-col gap-3 md:flex-row"
+    >
+      <div className="relative flex-1">
+        <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+          <Search className="h-5 w-5" />
+        </div>
+
+        <input
+          className="h-12 w-full rounded-lg bg-black border border-[#1A1A1A] pl-14 pr-4 text-base focus:ring-4 focus:ring-white/10 outline-none"
+          placeholder="搜索渠道、平台、标签..."
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+      <button className="btn-primary h-12 md:w-auto" type="submit">
+        立即搜索
+      </button>
+    </form>
+  );
+}
