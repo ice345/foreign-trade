@@ -8,8 +8,7 @@ import { api } from "@/lib/api";
 import { fetcherOrNull } from "@/lib/api";
 import type { CartItemData, WalletInfo } from "@/lib/types";
 import { toast } from "sonner";
-
-const SERVICE_FEE = 50;
+import { SERVICE_FEE } from "@/lib/constants";
 
 export default function CartClient() {
   const queryClient = useQueryClient();

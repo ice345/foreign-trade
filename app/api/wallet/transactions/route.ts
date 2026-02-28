@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireUser } from "@/lib/auth"
+import { parsePagination } from "@/lib/pagination"
 
 export async function GET(req: Request) {
   try {
     const user = await requireUser()
     const { searchParams } = new URL(req.url)
-    const page = Number(searchParams.get("page") ?? 1)
-    const pageSize = Number(searchParams.get("pageSize") ?? 20)
+    const { page, pageSize, skip, take } = parsePagination(searchParams)
 
     const [data, total] = await Promise.all([
       prisma.transaction.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip,
+        take,
         include: {
           order: { select: { id: true, resource: { select: { title: true } } } }
         }
@@ -22,7 +22,15 @@ export async function GET(req: Request) {
       prisma.transaction.count({ where: { userId: user.id } })
     ])
 
-    return NextResponse.json({ data, total, page, pageSize })
+    return NextResponse.json({
+      data: data.map((tx) => ({
+        ...tx,
+        amount: Number(tx.amount)
+      })),
+      total,
+      page,
+      pageSize
+    })
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }

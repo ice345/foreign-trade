@@ -23,7 +23,7 @@ export default function ResourceReviews({ resourceId }: Props) {
   });
 
   const confirmedOrder = orders?.find(
-    (o) => o.resource.id === resourceId && o.status === "CONFIRMED"
+    (o) => o.resource?.id === resourceId && o.status === "CONFIRMED"
   );
 
   return (

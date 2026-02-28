@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { X, Save } from "lucide-react";
@@ -30,6 +31,12 @@ export default function ResourceDrawer({ resource, onClose, onSaved }: Props) {
       badge: resource.badge ?? "",
       followers: resource.followers ?? null
     }
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: api.categories,
+    staleTime: 5 * 60 * 1000
   });
 
   const imageUrl = watch("image");
@@ -88,7 +95,12 @@ export default function ResourceDrawer({ resource, onClose, onSaved }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-white/60">分类</label>
-                <input className="input w-full" placeholder="例如: 家居" {...register("category", { required: true })} />
+                <select className="input w-full cursor-pointer appearance-none" {...register("category", { required: true })}>
+                  <option value="" className="bg-panel">选择分类</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name} className="bg-panel">{cat.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-white/60">平台</label>

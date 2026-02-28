@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUser } from "@/lib/auth";
-import { deductBalance } from "@/lib/wallet";
 import { createNotification } from "@/lib/notifications";
+import { SERVICE_FEE } from "@/lib/constants";
+import { parsePagination } from "@/lib/pagination";
+import { toNumberOrNull } from "@/lib/decimal";
 
 export async function GET(req: Request) {
   try {
@@ -15,14 +17,32 @@ export async function GET(req: Request) {
       } catch {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const orders = await prisma.order.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          resource: { select: { id: true, title: true } },
-          user: { select: { id: true, email: true, phone: true } }
-        }
+
+      const { page, pageSize, skip, take } = parsePagination(searchParams);
+
+      const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+          orderBy: { createdAt: "desc" },
+          skip,
+          take,
+          include: {
+            resource: { select: { id: true, title: true } },
+            user: { select: { id: true, email: true, phone: true } }
+          }
+        }),
+        prisma.order.count()
+      ]);
+
+      return NextResponse.json({
+        data: orders.map((o) => ({
+          ...o,
+          amount: toNumberOrNull(o.amount as any),
+          finalPrice: toNumberOrNull(o.finalPrice as any)
+        })),
+        total,
+        page,
+        pageSize
       });
-      return NextResponse.json(orders);
     }
 
     const user = await requireUser();
@@ -34,7 +54,13 @@ export async function GET(req: Request) {
         user: { select: { id: true, email: true, phone: true } }
       }
     });
-    return NextResponse.json(orders);
+    return NextResponse.json(
+      orders.map((o) => ({
+        ...o,
+        amount: toNumberOrNull(o.amount as any),
+        finalPrice: toNumberOrNull(o.finalPrice as any)
+      }))
+    );
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -47,7 +73,6 @@ export async function POST(req: Request) {
     const {
       resourceId,
       message,
-      amount,
       productLink,
       discountCode,
       finalPrice,
@@ -59,7 +84,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Resource ID is required" }, { status: 400 });
     }
 
-    const orderAmount = amount || 0;
+    const resource = await prisma.resource.findUnique({
+      where: { id: resourceId },
+      select: { id: true, title: true, price: true }
+    });
+
+    if (!resource) {
+      return NextResponse.json({ error: "资源不存在" }, { status: 404 });
+    }
+
+    const basePrice = resource.price ? Number(resource.price) : 0;
+    const orderAmount = basePrice + SERVICE_FEE;
 
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
@@ -70,7 +105,7 @@ export async function POST(req: Request) {
           amount: orderAmount,
           productLink,
           discountCode,
-          finalPrice: finalPrice ?? null,
+          finalPrice: finalPrice != null ? finalPrice : null,
           startDate: startDate ? new Date(startDate) : null,
           endDate: endDate ? new Date(endDate) : null,
           status: "PENDING"
@@ -78,19 +113,23 @@ export async function POST(req: Request) {
       });
 
       if (orderAmount > 0) {
-        const wallet = await tx.wallet.findUnique({ where: { userId: user.id } });
-        if (!wallet || wallet.balance < orderAmount) {
-          throw new Error("余额不足");
-        }
-
-        await tx.wallet.update({
-          where: { userId: user.id },
+        const result = await tx.wallet.updateMany({
+          where: {
+            userId: user.id,
+            balance: { gte: orderAmount }
+          },
           data: { balance: { decrement: orderAmount } }
         });
 
+        if (result.count === 0) {
+          throw new Error("余额不足");
+        }
+
+        const wallet = await tx.wallet.findUnique({ where: { userId: user.id } });
+
         await tx.transaction.create({
           data: {
-            walletId: wallet.id,
+            walletId: wallet!.id,
             userId: user.id,
             type: "DEDUCTION",
             amount: -orderAmount,
@@ -103,21 +142,16 @@ export async function POST(req: Request) {
       return newOrder;
     });
 
-    const resource = await prisma.resource.findUnique({
-      where: { id: resourceId },
-      select: { title: true }
-    });
-
-    await createNotification({
+    createNotification({
       userId: user.id,
       type: "ORDER_CREATED",
       title: "订单创建成功",
-      message: `您的推广订单「${resource?.title ?? ""}」已提交，等待处理中。`,
+      message: `您的推广订单「${resource.title}」已提交，等待处理中。`,
       orderId: order.id,
       sendEmail: true
     }).catch(() => {});
 
-    return NextResponse.json({ success: true, order });
+    return NextResponse.json({ success: true, order: { ...order, amount: toNumberOrNull(order.amount as any), finalPrice: toNumberOrNull(order.finalPrice as any) } });
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "Unauthorized") {
@@ -127,6 +161,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "余额不足" }, { status: 400 });
       }
     }
-    return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+    return NextResponse.json({ error: "创建订单失败" }, { status: 500 });
   }
 }

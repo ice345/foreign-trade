@@ -33,7 +33,7 @@ export default function OrderTracking() {
           <div key={order.id} className="card space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold">{order.resource.title}</h3>
+                <h3 className="text-lg font-semibold">{order.resource?.title ?? "已删除资源"}</h3>
                 <p className="text-xs text-white/50">订单号：{order.id.slice(0, 8)}</p>
               </div>
               <div className="text-sm text-white/60">金额 ¥{order.amount?.toFixed(2) ?? "0.00"}</div>

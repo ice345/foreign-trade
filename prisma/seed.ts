@@ -1,18 +1,60 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const password = await bcrypt.hash("admin1234", 10);
-  await prisma.user.upsert({
-    where: { email: "admin@globalpush.io" },
-    update: {},
-    create: {
-      email: "admin@globalpush.io",
-      password,
-      role: "ADMIN"
+  const allowAdminSeed = process.env.ALLOW_ADMIN_SEED === "true";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  if (allowAdminSeed) {
+    if (!adminEmail || !adminPassword) {
+      throw new Error(
+        "Missing SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD when ALLOW_ADMIN_SEED=true."
+      );
     }
+
+    const password = await bcrypt.hash(adminPassword, 10);
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {},
+      create: {
+        email: adminEmail,
+        password,
+        role: "ADMIN"
+      }
+    });
+  } else {
+    console.log(
+      "Skipping admin seed. Set ALLOW_ADMIN_SEED=true to create an admin account."
+    );
+  }
+
+  const categories = [
+    { name: "家居", sort: 0 },
+    { name: "电子", sort: 1 },
+    { name: "服饰", sort: 2 },
+    { name: "美妆", sort: 3 }
+  ];
+
+  await prisma.category.createMany({
+    data: categories,
+    skipDuplicates: true
+  });
+
+  const tags = [
+    { name: "deal", sort: 0 },
+    { name: "facebook", sort: 1 },
+    { name: "telegram", sort: 2 },
+    { name: "tiktok", sort: 3 },
+    { name: "折扣", sort: 4 }
+  ];
+
+  await prisma.tag.createMany({
+    data: tags,
+    skipDuplicates: true
   });
 
   const resources = [
@@ -116,7 +158,10 @@ async function main() {
     }
   ];
 
-  await prisma.resource.createMany({ data: resources });
+  await prisma.resource.createMany({
+    data: resources as any,
+    skipDuplicates: true
+  });
 }
 
 main()

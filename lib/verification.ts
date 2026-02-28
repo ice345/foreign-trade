@@ -15,7 +15,7 @@ function generateCode(): string {
 export async function sendVerificationCode(
   target: string,
   type: "EMAIL" | "PHONE"
-): Promise<{ success: boolean; error?: string; code?: string }> {
+): Promise<{ success: boolean; error?: string }> {
   const recent = await prisma.verificationCode.findFirst({
     where: {
       target,
@@ -44,6 +44,10 @@ export async function sendVerificationCode(
     }
   })
 
+  if (process.env.NODE_ENV === "development") {
+    console.info(`[DEV] Verification code for ${target}: ${code}`)
+  }
+
   if (type === "EMAIL") {
     await sendEmail({
       to: target,
@@ -54,10 +58,7 @@ export async function sendVerificationCode(
     await sendSMS(target, `您的验证码是：${code}，${CODE_EXPIRY_MINUTES} 分钟内有效。`)
   }
 
-  return {
-    success: true,
-    ...(process.env.NODE_ENV === "development" ? { code } : {})
-  }
+  return { success: true }
 }
 
 export async function verifyCode(target: string, code: string): Promise<boolean> {

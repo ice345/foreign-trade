@@ -5,18 +5,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { fetcher } from "@/lib/api"
 import { toast } from "sonner"
 import { DollarSign, Trash2, AlertTriangle, X } from "lucide-react"
+import type { PaginatedResponse } from "@/lib/types"
 
 type UserRow = {
   id: string
   email?: string | null
   phone?: string | null
   role: string
+  nickname?: string | null
   balance: number
   createdAt: string
 }
 
 export default function UserWalletManager() {
   const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
   const [topUpTarget, setTopUpTarget] = useState<UserRow | null>(null)
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("管理员充值")
@@ -26,10 +29,13 @@ export default function UserWalletManager() {
   const [deleteReason, setDeleteReason] = useState("")
   const [deleting, setDeleting] = useState(false)
 
-  const { data: users = [] } = useQuery<UserRow[]>({
-    queryKey: ["admin-users"],
-    queryFn: () => fetcher<UserRow[]>("/api/admin/users")
+  const { data: resp } = useQuery({
+    queryKey: ["admin-users", page],
+    queryFn: () => fetcher<PaginatedResponse<UserRow>>(`/api/admin/users?page=${page}&pageSize=20`)
   })
+
+  const users = resp?.data ?? []
+  const totalPages = resp ? Math.ceil(resp.total / resp.pageSize) : 1
 
   const handleTopUp = async () => {
     if (!topUpTarget || !amount) return
@@ -105,7 +111,7 @@ export default function UserWalletManager() {
             {users.map((user) => (
               <tr key={user.id} className="text-white/70">
                 <td className="px-6 py-4">
-                  <div className="font-medium text-white">{user.email ?? user.phone ?? "-"}</div>
+                  <div className="font-medium text-white">{user.nickname ?? user.email ?? user.phone ?? "-"}</div>
                   <div className="text-xs text-white/40">#{user.id.slice(0, 8)}</div>
                 </td>
                 <td className="px-6 py-4">
@@ -149,6 +155,28 @@ export default function UserWalletManager() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <button
+            className="btn-outline text-sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+          >
+            上一页
+          </button>
+          <span className="text-sm text-white/50">
+            {page} / {totalPages}
+          </span>
+          <button
+            className="btn-outline text-sm"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+          >
+            下一页
+          </button>
+        </div>
+      )}
 
       {topUpTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

@@ -24,17 +24,22 @@ export async function POST(req: Request) {
       userId,
       type: "BALANCE_TOPUP",
       title: "余额充值成功",
-      message: `管理员为您充值 ¥${amount.toFixed(2)}，当前余额 ¥${wallet.balance.toFixed(2)}`,
+      message: `管理员为您充值 ¥${amount.toFixed(2)}，当前余额 ¥${Number(wallet.balance).toFixed(2)}`,
       sendEmail: true
     })
 
     return NextResponse.json({
       success: true,
-      balance: wallet.balance
+      balance: Number(wallet.balance)
     })
   } catch (error) {
-    if (error instanceof Error && error.message === "Forbidden") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (error instanceof Error) {
+      if (error.message === "Unauthorized") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+      if (error.message === "Forbidden") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
     }
     return NextResponse.json({ error: "充值失败" }, { status: 500 })
   }

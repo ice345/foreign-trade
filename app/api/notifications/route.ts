@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireUser } from "@/lib/auth"
+import { parsePagination } from "@/lib/pagination"
 
 export async function GET(req: Request) {
   try {
     const user = await requireUser()
     const { searchParams } = new URL(req.url)
-    const page = Number(searchParams.get("page") ?? 1)
-    const pageSize = Number(searchParams.get("pageSize") ?? 20)
+    const { page, pageSize, skip, take } = parsePagination(searchParams)
     const unreadOnly = searchParams.get("unreadOnly") === "true"
 
     const where = {
@@ -19,8 +19,8 @@ export async function GET(req: Request) {
       prisma.notification.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        skip: (page - 1) * pageSize,
-        take: pageSize
+        skip,
+        take
       }),
       prisma.notification.count({ where }),
       prisma.notification.count({ where: { userId: user.id, read: false } })

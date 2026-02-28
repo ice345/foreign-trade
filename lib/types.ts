@@ -27,6 +27,7 @@ export type ResourceDetail = ResourceSummary & {
   image?: string | null;
   price?: number | null;
   createdAt: string;
+  categoryId?: string | null;
 };
 
 export type OrderItem = {
@@ -44,7 +45,7 @@ export type OrderItem = {
   resource: {
     id: string;
     title: string;
-  };
+  } | null;
   user?: {
     id: string;
     email?: string | null;
@@ -57,6 +58,8 @@ export type UserProfile = {
   email?: string | null;
   phone?: string | null;
   role: "USER" | "ADMIN";
+  nickname?: string | null;
+  avatar?: string | null;
 };
 
 export type WalletInfo = {
@@ -73,7 +76,7 @@ export type TransactionItem = {
   createdAt: string;
   order?: {
     id: string;
-    resource: { title: string };
+    resource: { title: string } | null;
   } | null;
 };
 
@@ -94,6 +97,7 @@ export type ReviewItem = {
   comment?: string | null;
   createdAt: string;
   user: {
+    nickname?: string | null;
     email?: string | null;
     phone?: string | null;
   };
@@ -105,4 +109,14 @@ export type CartItemData = {
   resourceId: string;
   createdAt: string;
   resource: ResourceSummary;
+};
+
+export type PaymentRequestItem = {
+  id: string;
+  amount: number;
+  paymentMethod: "WECHAT" | "ALIPAY";
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };

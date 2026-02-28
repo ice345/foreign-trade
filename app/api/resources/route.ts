@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { Prisma, Resource } from "@prisma/client";
+import { Prisma, Resource, ResourceStatus } from "@prisma/client";
+import { createResourceSchema } from "@/lib/validations/resource";
+import { parsePagination } from "@/lib/pagination";
+import { toNumberOrNull } from "@/lib/decimal";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,8 +13,7 @@ export async function GET(request: Request) {
   const platform = searchParams.get("platform") ?? "";
   const country = searchParams.get("country") ?? "";
   const status = searchParams.get("status") ?? "";
-  const page = Number(searchParams.get("page") ?? 1);
-  const pageSize = Number(searchParams.get("pageSize") ?? 12);
+  const { page, pageSize, skip, take } = parsePagination(searchParams, { pageSize: 12 });
   const mode = searchParams.get("mode") ?? "public";
   const sort = searchParams.get("sort") ?? "createdAt";
   const direction = searchParams.get("direction") === "asc" ? "asc" : "desc";
@@ -20,7 +22,7 @@ export async function GET(request: Request) {
     try {
       await requireAdmin();
     } catch {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
 
@@ -52,10 +54,9 @@ export async function GET(request: Request) {
 
     const whereSql = Prisma.sql`WHERE ${conditionsSql}`;
     const orderSql = Prisma.sql`ORDER BY ${orderBy} ${orderDirection}`;
-    const offset = (page - 1) * pageSize;
 
     const [rows, counts] = await Promise.all([
-      prisma.$queryRaw<Resource[]>(Prisma.sql`SELECT * FROM "Resource" ${whereSql} ${orderSql} LIMIT ${pageSize} OFFSET ${offset}`),
+      prisma.$queryRaw<Resource[]>(Prisma.sql`SELECT * FROM "Resource" ${whereSql} ${orderSql} LIMIT ${take} OFFSET ${skip}`),
       prisma.$queryRaw<{ count: number }[]>(Prisma.sql`SELECT COUNT(*)::int as count FROM "Resource" ${whereSql}`)
     ]);
     data = rows;
@@ -66,7 +67,7 @@ export async function GET(request: Request) {
         category ? { category } : {},
         platform ? { platform } : {},
         country ? { country } : {},
-        status ? { status } : mode === "public" ? { status: "ACTIVE" } : {}
+        status ? { status: status as ResourceStatus } : mode === "public" ? { status: ResourceStatus.ACTIVE } : {}
       ]
     };
 
@@ -79,8 +80,8 @@ export async function GET(request: Request) {
             : sort === "category"
               ? { category: direction }
               : { createdAt: direction },
-        skip: (page - 1) * pageSize,
-        take: pageSize
+        skip,
+        take
       }),
       prisma.resource.count({ where })
     ]);
@@ -89,7 +90,15 @@ export async function GET(request: Request) {
   }
 
   if (mode === "admin") {
-    return NextResponse.json({ data, total, page, pageSize });
+    return NextResponse.json({
+      data: data.map((item) => ({
+        ...item,
+        price: toNumberOrNull(item.price as any)
+      })),
+      total,
+      page,
+      pageSize
+    });
   }
 
   const resourceIds = data.map((item) => item.id);
@@ -119,7 +128,7 @@ export async function GET(request: Request) {
         platform: item.platform,
         status: item.status,
         image: item.image,
-        price: item.price,
+        price: toNumberOrNull(item.price as any),
         badge: item.badge,
         followers: item.followers,
         averageRating: stats?.averageRating ?? null,
@@ -136,24 +145,41 @@ export async function POST(request: Request) {
   try {
     await requireAdmin();
     const payload = await request.json();
+    const parsed = createResourceSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const data = parsed.data;
     const resource = await prisma.resource.create({
       data: {
-        title: payload.title,
-        description: payload.description,
-        category: payload.category,
-        country: payload.country,
-        tags: payload.tags ?? [],
-        platform: payload.platform,
-        link: payload.link,
-        image: payload.image,
-        price: payload.price ?? null,
-        badge: payload.badge ?? null,
-        followers: payload.followers ?? null,
-        status: payload.status ?? "ACTIVE"
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        country: data.country,
+        tags: data.tags,
+        platform: data.platform,
+        link: data.link,
+        image: data.image ?? null,
+        price: data.price ?? null,
+        badge: data.badge ?? null,
+        followers: data.followers ?? null,
+        status: data.status,
+        categoryId: data.categoryId ?? null
       }
     });
-    return NextResponse.json(resource);
-  } catch {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json({
+      ...resource,
+      price: toNumberOrNull(resource.price as any)
+    });
+  } catch (error) {
+    if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.json({ error: "创建资源失败" }, { status: 500 });
   }
 }

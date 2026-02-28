@@ -52,28 +52,33 @@ export async function DELETE(
       )
     }
 
+    await prisma.user.delete({ where: { id: userId } })
+
     if (targetUser.email) {
-      await sendEmail({
+      sendEmail({
         to: targetUser.email,
         subject: "GlobalPush 账号已被删除",
         html: `<p>您的 GlobalPush 账号已被管理员删除。</p><p><strong>原因：</strong>${reason}</p><p>如有疑问，请联系客服。</p>`
-      })
+      }).catch(() => {})
     }
 
     if (targetUser.phone) {
-      await sendSMS(
+      sendSMS(
         targetUser.phone,
         `您的 GlobalPush 账号已被管理员删除。原因：${reason}。如有疑问请联系客服。`
-      )
+      ).catch(() => {})
     }
-
-    await prisma.user.delete({ where: { id: userId } })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "删除失败"
-    const status = message === "Unauthorized" || message === "Forbidden" ? 401 : 500
-    return NextResponse.json({ success: false, error: message }, { status })
+    if (error instanceof Error) {
+      if (error.message === "Unauthorized") {
+        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+      }
+      if (error.message === "Forbidden") {
+        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+      }
+    }
+    return NextResponse.json({ success: false, error: "删除失败" }, { status: 500 })
   }
 }

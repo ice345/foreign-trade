@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { createNotification } from "@/lib/notifications";
-
-const SERVICE_FEE = 50;
+import { SERVICE_FEE } from "@/lib/constants";
+import { toNumberOrNull } from "@/lib/decimal";
 
 type BatchItem = {
   resourceId: string;
@@ -31,25 +31,38 @@ export async function POST(req: Request) {
     });
     const resourceMap = new Map(resources.map((r) => [r.id, r]));
 
-    const orderCount = await prisma.$transaction(async (tx) => {
-      const wallet = await tx.wallet.findUnique({ where: { userId: user.id } });
-      let currentBalance = wallet?.balance ?? 0;
+    let totalAmount = 0;
+    for (const item of items) {
+      const resource = resourceMap.get(item.resourceId);
+      if (!resource) continue;
+      const basePrice = resource.price ? Number(resource.price) : 0;
+      totalAmount += basePrice + SERVICE_FEE;
+    }
 
-      const createdOrders: { id: string; resourceTitle: string }[] = [];
+    const createdOrders = await prisma.$transaction(async (tx) => {
+      if (totalAmount > 0) {
+        const result = await tx.wallet.updateMany({
+          where: {
+            userId: user.id,
+            balance: { gte: totalAmount }
+          },
+          data: { balance: { decrement: totalAmount } }
+        });
+
+        if (result.count === 0) {
+          throw new Error("余额不足");
+        }
+      }
+
+      const wallet = await tx.wallet.findUnique({ where: { userId: user.id } });
+      const orders: { id: string; resourceTitle: string }[] = [];
 
       for (const item of items) {
         const resource = resourceMap.get(item.resourceId);
         if (!resource) continue;
 
-        const basePrice = resource.price ?? 0;
+        const basePrice = resource.price ? Number(resource.price) : 0;
         const amount = basePrice + SERVICE_FEE;
-
-        if (amount > 0) {
-          if (currentBalance < amount) {
-            throw new Error("余额不足");
-          }
-          currentBalance -= amount;
-        }
 
         const newOrder = await tx.order.create({
           data: {
@@ -67,11 +80,6 @@ export async function POST(req: Request) {
         });
 
         if (amount > 0 && wallet) {
-          await tx.wallet.update({
-            where: { userId: user.id },
-            data: { balance: { decrement: amount } }
-          });
-
           await tx.transaction.create({
             data: {
               walletId: wallet.id,
@@ -84,18 +92,18 @@ export async function POST(req: Request) {
           });
         }
 
-        createdOrders.push({ id: newOrder.id, resourceTitle: resource.title });
+        orders.push({ id: newOrder.id, resourceTitle: resource.title });
       }
 
       await tx.cartItem.deleteMany({
         where: { userId: user.id, resourceId: { in: resourceIds } }
       });
 
-      return createdOrders;
+      return orders;
     });
 
-    for (const order of orderCount) {
-      await createNotification({
+    for (const order of createdOrders) {
+      createNotification({
         userId: user.id,
         type: "ORDER_CREATED",
         title: "订单创建成功",
@@ -105,7 +113,7 @@ export async function POST(req: Request) {
       }).catch(() => {});
     }
 
-    return NextResponse.json({ success: true, orderCount: orderCount.length });
+    return NextResponse.json({ success: true, orderCount: createdOrders.length });
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "Unauthorized") {
@@ -115,6 +123,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "余额不足" }, { status: 400 });
       }
     }
-    return NextResponse.json({ error: "Failed to create orders" }, { status: 500 });
+    return NextResponse.json({ error: "批量下单失败" }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import AdminResourceEditor from "./AdminResourceEditor";
 import { notFound } from "next/navigation";
+import { toNumberOrNull } from "@/lib/decimal";
 
 type Props = { params: { id: string } };
 
@@ -20,6 +21,7 @@ export default async function AdminResourcePage({ params }: Props) {
       <AdminResourceEditor
         resource={{
           ...resource,
+          price: toNumberOrNull(resource.price as any),
           createdAt: resource.createdAt.toISOString(),
           status: resource.status as "ACTIVE" | "HIDDEN"
         }}

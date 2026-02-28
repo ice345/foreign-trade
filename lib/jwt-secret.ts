@@ -1,7 +1,7 @@
 const raw = process.env.JWT_SECRET
 
-if (!raw && process.env.NODE_ENV === "production") {
-  throw new Error("JWT_SECRET environment variable is required in production")
+if (!raw) {
+  throw new Error("JWT_SECRET environment variable is required")
 }
 
-export const jwtSecret = new TextEncoder().encode(raw ?? "dev-secret")
+export const jwtSecret = new TextEncoder().encode(raw)

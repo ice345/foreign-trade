@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { X, PlusCircle } from "lucide-react";
@@ -20,6 +21,7 @@ type FormValues = {
   followers?: number | null;
   tags: string;
   status: "ACTIVE" | "HIDDEN";
+  categoryId?: string;
 };
 
 type Props = {
@@ -32,6 +34,12 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
     defaultValues: { status: "ACTIVE", tags: "", price: null }
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: api.categories,
+    staleTime: 5 * 60 * 1000
+  });
+
   const imageUrl = watch("image");
 
   const onSubmit = handleSubmit(async (values) => {
@@ -41,8 +49,9 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
         price: values.price ?? null,
         tags: values.tags
           ? values.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
-          : []
-      });
+          : [],
+        categoryId: values.categoryId || null
+      } as any);
       toast.success("资源已创建");
       onCreated();
     } catch {
@@ -86,13 +95,18 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-              <label className="mb-1.5 block text-xs font-medium text-white/60">分类</label>
-              <input className="input w-full" placeholder="例如: 家居" {...register("category", { required: true })} />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-white/60">平台</label>
-              <input className="input w-full" placeholder="例如: Facebook 群组" {...register("platform", { required: true })} />
-            </div>
+                <label className="mb-1.5 block text-xs font-medium text-white/60">分类</label>
+                <select className="input w-full cursor-pointer appearance-none" {...register("category", { required: true })}>
+                  <option value="" className="bg-panel">选择分类</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name} className="bg-panel">{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-white/60">平台</label>
+                <input className="input w-full" placeholder="例如: Facebook 群组" {...register("platform", { required: true })} />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -8,9 +8,11 @@ export async function GET() {
       id: user.id,
       email: user.email,
       phone: user.phone,
-      role: user.role
+      role: user.role,
+      nickname: user.nickname,
+      avatar: user.avatar
     });
   } catch {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }

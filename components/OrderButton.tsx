@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import type { WalletInfo } from "@/lib/types";
 import { fetcherOrNull } from "@/lib/api";
+import { SERVICE_FEE } from "@/lib/constants";
 
 type Props = {
   resourceId: string;
@@ -18,7 +19,7 @@ type Props = {
   label?: string;
 };
 
-const serviceFee = 50;
+const serviceFee = SERVICE_FEE;
 
 export default function OrderButton({
   resourceId,
@@ -61,7 +62,6 @@ export default function OrderButton({
         body: JSON.stringify({
           resourceId,
           message,
-          amount: total ?? 0,
           productLink,
           discountCode,
           finalPrice: finalPrice ? Number(finalPrice) : null,

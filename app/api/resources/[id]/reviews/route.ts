@@ -2,22 +2,34 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireUser } from "@/lib/auth"
 import { createReviewSchema } from "@/lib/validations/review"
+import { parsePagination } from "@/lib/pagination"
 
 type Props = { params: { id: string } }
 
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@")
+  if (!domain) return "***"
+  const masked = local.length > 1 ? local[0] + "***" : "***"
+  return `${masked}@${domain}`
+}
+
+function maskPhone(phone: string): string {
+  if (phone.length < 7) return "****"
+  return phone.slice(0, 3) + "****" + phone.slice(-4)
+}
+
 export async function GET(req: Request, { params }: Props) {
   const { searchParams } = new URL(req.url)
-  const page = Number(searchParams.get("page") ?? 1)
-  const pageSize = Number(searchParams.get("pageSize") ?? 10)
+  const { page, pageSize, skip, take } = parsePagination(searchParams, { pageSize: 10 })
 
   const [reviews, total, avgResult] = await Promise.all([
     prisma.review.findMany({
       where: { resourceId: params.id },
       orderBy: { createdAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take,
       include: {
-        user: { select: { email: true, phone: true } }
+        user: { select: { email: true, phone: true, nickname: true } }
       }
     }),
     prisma.review.count({ where: { resourceId: params.id } }),
@@ -28,7 +40,14 @@ export async function GET(req: Request, { params }: Props) {
   ])
 
   return NextResponse.json({
-    data: reviews,
+    data: reviews.map((r) => ({
+      ...r,
+      user: {
+        nickname: r.user.nickname ?? null,
+        email: r.user.email ? maskEmail(r.user.email) : null,
+        phone: r.user.phone ? maskPhone(r.user.phone) : null
+      }
+    })),
     total,
     page,
     pageSize,

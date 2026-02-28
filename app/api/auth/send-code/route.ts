@@ -2,9 +2,18 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { sendCodeSchema } from "@/lib/validations/auth"
 import { sendVerificationCode } from "@/lib/verification"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
+    const limit = rateLimitByIp(request, "send-code", 1, 60 * 1000)
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { success: false, error: "请等待 60 秒后再试" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      )
+    }
+
     const body = await request.json()
     const parsed = sendCodeSchema.safeParse(body)
 
@@ -41,10 +50,7 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json({
-      success: true,
-      ...(result.code ? { code: result.code } : {})
-    })
+    return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json(
       { success: false, error: "发送验证码失败" },

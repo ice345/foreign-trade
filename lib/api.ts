@@ -17,8 +17,15 @@ export async function fetcher<T>(url: string, init?: RequestInit): Promise<T> {
     }
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Request failed");
+    let message = "Request failed";
+    try {
+      const json = await res.json();
+      message = json.error || json.message || message;
+    } catch {
+      const text = await res.text();
+      if (text) message = text;
+    }
+    throw new Error(message);
   }
   return res.json() as Promise<T>;
 }
@@ -33,8 +40,15 @@ export async function fetcherOrNull<T>(url: string, init?: RequestInit): Promise
   });
   if (res.status === 401) return null;
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Request failed");
+    let message = "Request failed";
+    try {
+      const json = await res.json();
+      message = json.error || json.message || message;
+    } catch {
+      const text = await res.text();
+      if (text) message = text;
+    }
+    throw new Error(message);
   }
   return res.json() as Promise<T>;
 }
@@ -84,13 +98,35 @@ export const api = {
       body: JSON.stringify({ resourceId })
     }),
   removeFromCart: (resourceId: string) =>
-    fetcher<{ success: true }>("/api/cart", {
-      method: "DELETE",
-      body: JSON.stringify({ resourceId })
+    fetcher<{ success: true }>(`/api/cart?resourceId=${encodeURIComponent(resourceId)}`, {
+      method: "DELETE"
     }),
   batchOrder: (items: { resourceId: string; productLink?: string; discountCode?: string; finalPrice?: number | null; startDate?: string | null; endDate?: string | null; message?: string }[]) =>
     fetcher<{ success: true; orderCount: number }>("/api/cart/batch-order", {
       method: "POST",
       body: JSON.stringify({ items })
-    })
+    }),
+  categories: () => fetcher<{ id: string; name: string; sort: number }[]>("/api/categories"),
+  tags: () => fetcher<{ id: string; name: string; sort: number }[]>("/api/tags"),
+  updateProfile: (payload: { nickname?: string; avatar?: string }) =>
+    fetcher<{ success: true }>("/api/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }),
+  changePassword: (payload: { currentPassword: string; newPassword: string }) =>
+    fetcher<{ success: true }>("/api/auth/change-password", {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }),
+  activePaymentQrCodes: (type?: string) =>
+    fetcher<{ id: string; type: string; imageUrl: string; label?: string }[]>(
+      `/api/payment-qr${type ? `?type=${type}` : ""}`
+    ),
+  createPaymentRequest: (payload: { amount: number; paymentMethod: string; qrCodeId?: string; note?: string }) =>
+    fetcher<{ success: true }>("/api/payment-requests", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  myPaymentRequests: (page = 1) =>
+    fetcher<PaginatedResponse<any>>(`/api/payment-requests?page=${page}`)
 };

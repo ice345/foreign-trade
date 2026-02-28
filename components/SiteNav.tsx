@@ -21,6 +21,7 @@ const baseLinks = [
 
 const userLinks = [
   { href: "/profile", label: "收藏中心" },
+  { href: "/profile/settings", label: "个人设置" },
   { href: "/orders", label: "订单进度" },
   { href: "/wallet", label: "钱包" }
 ]
@@ -29,7 +30,10 @@ const adminLinks = [
   { href: "/admin/dashboard", label: "数据面板" },
   { href: "/admin/resources", label: "管理控制台" },
   { href: "/admin/orders", label: "订单管理" },
-  { href: "/admin/users", label: "用户管理" }
+  { href: "/admin/users", label: "用户管理" },
+  { href: "/admin/categories", label: "分类管理" },
+  { href: "/admin/tags", label: "标签管理" },
+  { href: "/admin/payments", label: "支付管理" }
 ]
 
 export default function SiteNav() {

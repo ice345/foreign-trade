@@ -37,11 +37,13 @@ export default function UserMenu() {
     );
   }
 
+  const displayName = user.nickname || user.email || user.phone;
+
   return (
     <div className="flex items-center gap-3 text-xs text-white/70">
-      <span className="hidden md:inline">{user.email ?? user.phone}</span>
-      <Link href="/profile" className="btn-outline text-xs">
-        我的收藏
+      <span className="hidden md:inline">{displayName}</span>
+      <Link href="/profile/settings" className="btn-outline text-xs">
+        设置
       </Link>
       <button className="btn text-xs" onClick={logout}>
         退出

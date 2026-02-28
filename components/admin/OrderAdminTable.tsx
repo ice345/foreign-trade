@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetcher } from "@/lib/api";
-import type { OrderItem } from "@/lib/types";
+import type { OrderItem, PaginatedResponse } from "@/lib/types";
 import { useState } from "react";
 import { toast } from "sonner";
 import UploadButton from "@/components/UploadButton";
@@ -11,10 +11,14 @@ import { Trash2, AlertTriangle } from "lucide-react";
 const statusOptions = ["PENDING", "RUNNING", "POSTED", "CONFIRMED"];
 
 export default function OrderAdminTable() {
-  const { data = [], refetch } = useQuery({
-    queryKey: ["admin-orders"],
-    queryFn: () => fetcher<OrderItem[]>("/api/orders?mode=admin")
+  const [page, setPage] = useState(1);
+  const { data: resp, refetch } = useQuery({
+    queryKey: ["admin-orders", page],
+    queryFn: () => fetcher<PaginatedResponse<OrderItem>>(`/api/orders?mode=admin&page=${page}&pageSize=20`)
   });
+
+  const orders = resp?.data ?? [];
+  const totalPages = resp ? Math.ceil(resp.total / resp.pageSize) : 1;
 
   const [saving, setSaving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<OrderItem | null>(null);
@@ -73,10 +77,10 @@ export default function OrderAdminTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {data.map((order) => (
+            {orders.map((order) => (
               <tr key={order.id} className="text-white/70">
                 <td className="px-6 py-4">
-                  <div className="font-medium text-white">{order.resource.title}</div>
+                  <div className="font-medium text-white">{order.resource?.title ?? "(已删除)"}</div>
                   <div className="text-xs text-white/40">#{order.id.slice(0, 8)}</div>
                 </td>
                 <td className="px-6 py-4 text-xs">
@@ -130,7 +134,7 @@ export default function OrderAdminTable() {
                 </td>
               </tr>
             ))}
-            {!data.length && (
+            {!orders.length && (
               <tr>
                 <td colSpan={7} className="px-6 py-10 text-center text-white/40">
                   暂无订单
@@ -140,6 +144,29 @@ export default function OrderAdminTable() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            className="btn-outline text-sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+          >
+            上一页
+          </button>
+          <span className="text-sm text-white/50">
+            {page} / {totalPages}
+          </span>
+          <button
+            className="btn-outline text-sm"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+          >
+            下一页
+          </button>
+        </div>
+      )}
+
       <p className="text-xs text-white/40">
         管理员填写"发帖链接/截图链接"后，客户的进度追踪中心会自动显示。
       </p>
@@ -158,7 +185,7 @@ export default function OrderAdminTable() {
               </div>
             </div>
             <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
-              <div>资源：{deleting.resource.title}</div>
+              <div>资源：{deleting.resource?.title ?? "(已删除)"}</div>
               <div>客户：{deleting.user?.email ?? deleting.user?.phone ?? "-"}</div>
               <div>金额：¥{deleting.amount?.toFixed(2) ?? "0.00"}</div>
               {deleting.amount && deleting.amount > 0 && deleting.status !== "CONFIRMED" && (

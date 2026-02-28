@@ -49,20 +49,23 @@ export async function deductBalance(
   }
 
   return prisma.$transaction(async (tx) => {
-    const wallet = await tx.wallet.findUnique({ where: { userId } })
-
-    if (!wallet || wallet.balance < amount) {
-      throw new Error("余额不足")
-    }
-
-    const updated = await tx.wallet.update({
-      where: { userId },
+    const result = await tx.wallet.updateMany({
+      where: {
+        userId,
+        balance: { gte: amount }
+      },
       data: { balance: { decrement: amount } }
     })
 
+    if (result.count === 0) {
+      throw new Error("余额不足")
+    }
+
+    const wallet = await tx.wallet.findUniqueOrThrow({ where: { userId } })
+
     await tx.transaction.create({
       data: {
-        walletId: updated.id,
+        walletId: wallet.id,
         userId,
         type: "DEDUCTION",
         amount: -amount,
@@ -71,6 +74,6 @@ export async function deductBalance(
       }
     })
 
-    return updated
+    return wallet
   })
 }

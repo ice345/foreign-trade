@@ -3,9 +3,18 @@ import { prisma } from "@/lib/prisma"
 import { hashPassword } from "@/lib/auth"
 import { registerSchema } from "@/lib/validations/auth"
 import { verifyCode } from "@/lib/verification"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
+    const limit = rateLimitByIp(request, "register", 5, 60 * 60 * 1000)
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { success: false, error: "注册请求过于频繁，请稍后再试" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      )
+    }
+
     const body = await request.json()
     const parsed = registerSchema.safeParse(body)
 

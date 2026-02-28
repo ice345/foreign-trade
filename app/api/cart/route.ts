@@ -26,7 +26,15 @@ export async function GET() {
         }
       }
     });
-    return NextResponse.json(items);
+    return NextResponse.json(
+      items.map((item) => ({
+        ...item,
+        resource: {
+          ...item.resource,
+          price: item.resource.price ? Number(item.resource.price) : null
+        }
+      }))
+    );
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -56,7 +64,8 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const user = await requireUser();
-    const { resourceId } = await req.json();
+    const { searchParams } = new URL(req.url);
+    const resourceId = searchParams.get("resourceId");
 
     if (!resourceId) {
       return NextResponse.json({ error: "resourceId is required" }, { status: 400 });

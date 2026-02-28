@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma"
 import { sendEmail } from "@/lib/email"
+import type { NotificationType } from "@prisma/client"
 
 type CreateNotificationParams = {
   userId: string
-  type: string
+  type: NotificationType
   title: string
   message: string
   orderId?: string

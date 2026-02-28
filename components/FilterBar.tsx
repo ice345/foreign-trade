@@ -1,7 +1,9 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Filter } from "lucide-react";
+import { api } from "@/lib/api";
 
 type FilterOption = {
   key: string;
@@ -9,8 +11,7 @@ type FilterOption = {
   options: string[];
 };
 
-const filters: FilterOption[] = [
-  { key: "category", label: "分类", options: ["家居", "电子", "服饰", "美妆"] },
+const staticFilters: FilterOption[] = [
   { key: "country", label: "国家", options: ["美国", "英国", "德国", "日本"] },
   { key: "platform", label: "平台", options: ["Facebook 群组", "Telegram 频道", "Deal 站编辑", "TikTok 红人"] }
 ];
@@ -18,6 +19,17 @@ const filters: FilterOption[] = [
 export default function FilterBar() {
   const params = useSearchParams();
   const router = useRouter();
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: api.categories,
+    staleTime: 5 * 60 * 1000
+  });
+
+  const filters: FilterOption[] = [
+    { key: "category", label: "分类", options: categories.map((c) => c.name) },
+    ...staticFilters
+  ];
 
   const updateParam = (key: string, value: string) => {
     const search = new URLSearchParams(params.toString());

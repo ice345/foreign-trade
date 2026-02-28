@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import OrderButton from "@/components/OrderButton";
 import ResourceReviews from "./ResourceReviews";
+import { toNumberOrNull } from "@/lib/decimal";
 
 type Props = { params: { id: string } };
 
@@ -12,6 +13,8 @@ export default async function ResourceDetailPage({ params }: Props) {
   });
 
   if (!resource) return notFound();
+
+  const price = toNumberOrNull(resource.price as any);
 
   const reviewStats = await prisma.review.aggregate({
     where: { resourceId: params.id },
@@ -67,8 +70,8 @@ export default async function ResourceDetailPage({ params }: Props) {
             <div>平台: {resource.platform}</div>
             <div>状态: {resource.status}</div>
             <div>粉丝数: {resource.followers ? resource.followers.toLocaleString() : "暂无"}</div>
-            {resource.price !== null && resource.price !== undefined ? (
-              <div>{resource.price === 0 ? "价格: 免费" : `参考价: ¥${resource.price.toFixed(2)}`}</div>
+            {price !== null && price !== undefined ? (
+              <div>{price === 0 ? "价格: 免费" : `参考价: ¥${price.toFixed(2)}`}</div>
             ) : null}
           </div>
           <Link href={resource.link} target="_blank" className="btn w-full">
@@ -77,7 +80,7 @@ export default async function ResourceDetailPage({ params }: Props) {
           <div className="pt-2">
             <OrderButton
               resourceId={resource.id}
-              resourcePrice={resource.price ?? null}
+              resourcePrice={price}
               resourceTitle={resource.title}
               disabled={resource.status === "SOLD_OUT"}
             />

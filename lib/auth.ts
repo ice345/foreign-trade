@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { jwtSecret } from "@/lib/jwt-secret";
 
 const tokenName = "globalpush_token";
+const MAX_AGE = 7 * 24 * 60 * 60;
 
 export async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
@@ -28,14 +29,21 @@ export async function setSessionToken(token: string) {
   cookieStore.set(tokenName, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/"
+    secure: true,
+    path: "/",
+    maxAge: MAX_AGE
   });
 }
 
 export async function clearSessionToken() {
   const cookieStore = cookies();
-  cookieStore.set(tokenName, "", { expires: new Date(0), path: "/" });
+  cookieStore.set(tokenName, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    expires: new Date(0)
+  });
 }
 
 export async function getSession() {
