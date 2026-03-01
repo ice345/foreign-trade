@@ -24,6 +24,8 @@ type PaymentReq = {
   paymentMethod: "WECHAT" | "ALIPAY"
   status: "PENDING" | "APPROVED" | "REJECTED"
   note?: string | null
+  screenshotUrl?: string | null
+  referenceNo?: string | null
   createdAt: string
   user: { id: string; email?: string | null; phone?: string | null; nickname?: string | null }
 }
@@ -236,8 +238,10 @@ export default function PaymentManager() {
               <thead className="border-b border-white/5 bg-white/5 text-xs uppercase tracking-wider text-white/40">
                 <tr>
                   <th className="px-6 py-4">用户</th>
+                  <th className="px-6 py-4">编号</th>
                   <th className="px-6 py-4">金额</th>
                   <th className="px-6 py-4">方式</th>
+                  <th className="px-6 py-4">凭证</th>
                   <th className="px-6 py-4">状态</th>
                   <th className="px-6 py-4">时间</th>
                   <th className="px-6 py-4 text-right">操作</th>
@@ -249,8 +253,33 @@ export default function PaymentManager() {
                     <td className="px-6 py-4">
                       <div className="font-medium text-white">{r.user.nickname ?? r.user.email ?? r.user.phone}</div>
                     </td>
+                    <td className="px-6 py-4">
+                      {r.referenceNo ? (
+                        <span className="font-mono text-xs text-white/50">{r.referenceNo}</span>
+                      ) : (
+                        <span className="text-xs text-white/20">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 font-medium">¥{r.amount.toFixed(2)}</td>
                     <td className="px-6 py-4">{methodLabel[r.paymentMethod]}</td>
+                    <td className="px-6 py-4">
+                      {r.screenshotUrl ? (
+                        <a
+                          href={r.screenshotUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block"
+                        >
+                          <img
+                            src={r.screenshotUrl}
+                            alt="支付凭证"
+                            className="h-10 w-10 rounded border border-white/10 object-cover hover:opacity-80 transition"
+                          />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-white/20">无</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={statusColor[r.status]}>{statusLabel[r.status]}</span>
                     </td>
@@ -285,7 +314,7 @@ export default function PaymentManager() {
                 ))}
                 {!requests.length && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-white/40">
+                    <td colSpan={8} className="px-6 py-10 text-center text-white/40">
                       暂无充值请求
                     </td>
                   </tr>

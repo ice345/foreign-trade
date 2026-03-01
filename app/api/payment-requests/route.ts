@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server"
+import crypto from "crypto"
 import { prisma } from "@/lib/prisma"
 import { requireUser } from "@/lib/auth"
 import { paymentRequestSchema } from "@/lib/validations/payment"
 import { parsePagination } from "@/lib/pagination"
 import { rateLimitByIp } from "@/lib/rate-limit"
+
+function generateReferenceNo(): string {
+  const date = new Date()
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  const rand = crypto.randomBytes(4).toString("hex").toUpperCase()
+  return `GP${y}${m}${d}${rand}`
+}
 
 export async function GET(req: Request) {
   try {
@@ -22,7 +32,12 @@ export async function GET(req: Request) {
     ])
 
     return NextResponse.json({
-      data: data.map((r) => ({ ...r, amount: Number(r.amount) })),
+      data: data.map((r) => ({
+        ...r,
+        amount: Number(r.amount),
+        screenshotUrl: r.screenshotUrl ?? null,
+        referenceNo: r.referenceNo ?? null
+      })),
       total,
       page,
       pageSize
@@ -53,6 +68,8 @@ export async function POST(req: Request) {
       )
     }
 
+    const referenceNo = generateReferenceNo()
+
     const request = await prisma.paymentRequest.create({
       data: {
         userId: user.id,
@@ -60,11 +77,13 @@ export async function POST(req: Request) {
         paymentMethod: parsed.data.paymentMethod,
         qrCodeId: parsed.data.qrCodeId ?? null,
         note: parsed.data.note ?? null,
+        screenshotUrl: parsed.data.screenshotUrl || null,
+        referenceNo,
         status: "PENDING"
       }
     })
 
-    return NextResponse.json({ success: true, id: request.id })
+    return NextResponse.json({ success: true, id: request.id, referenceNo })
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

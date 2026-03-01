@@ -9,6 +9,7 @@ type Props = {
   onUploaded: (url: string) => void;
   currentUrl?: string;
   label?: string;
+  circular?: boolean;
 };
 
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -18,7 +19,8 @@ export default function UploadButton({
   folder,
   onUploaded,
   currentUrl,
-  label = "上传图片"
+  label = "上传图片",
+  circular = false
 }: Props) {
   const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
   const [uploading, setUploading] = useState(false);
@@ -94,17 +96,25 @@ export default function UploadButton({
   };
 
   return (
-    <div className="space-y-2">
+    <div className={circular ? "inline-block" : "space-y-2"}>
       {preview ? (
         <div className="relative group">
           <div
-            className="h-32 w-full rounded-xl border border-white/10 bg-cover bg-center"
+            className={
+              circular
+                ? "h-24 w-24 rounded-full border border-white/10 bg-cover bg-center"
+                : "h-32 w-full rounded-xl border border-white/10 bg-cover bg-center"
+            }
             style={{ backgroundImage: `url(${preview})` }}
           />
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white/70 opacity-0 transition group-hover:opacity-100 hover:text-white"
+            className={
+              circular
+                ? "absolute right-0 top-0 rounded-full bg-black/60 p-1 text-white/70 opacity-0 transition group-hover:opacity-100 hover:text-white"
+                : "absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white/70 opacity-0 transition group-hover:opacity-100 hover:text-white"
+            }
           >
             <X className="h-4 w-4" />
           </button>
@@ -114,7 +124,11 @@ export default function UploadButton({
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => inputRef.current?.click()}
-          className="flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/10 bg-white/5 text-white/40 transition hover:border-white/20 hover:text-white/60"
+          className={
+            circular
+              ? "flex h-24 w-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-full border-2 border-dashed border-white/10 bg-white/5 text-white/40 transition hover:border-white/20 hover:text-white/60"
+              : "flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/10 bg-white/5 text-white/40 transition hover:border-white/20 hover:text-white/60"
+          }
         >
           {uploading ? (
             <>
@@ -123,9 +137,9 @@ export default function UploadButton({
             </>
           ) : (
             <>
-              <ImageIcon className="h-8 w-8" />
+              <ImageIcon className={circular ? "h-6 w-6" : "h-8 w-8"} />
               <span className="text-xs">{label}</span>
-              <span className="text-[10px]">JPEG / PNG / WebP, 最大 5MB</span>
+              {!circular && <span className="text-[10px]">JPEG / PNG / WebP, 最大 5MB</span>}
             </>
           )}
         </div>

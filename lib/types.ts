@@ -117,6 +117,8 @@ export type PaymentRequestItem = {
   paymentMethod: "WECHAT" | "ALIPAY";
   status: "PENDING" | "APPROVED" | "REJECTED";
   note?: string | null;
+  screenshotUrl?: string | null;
+  referenceNo?: string | null;
   createdAt: string;
   updatedAt: string;
 };

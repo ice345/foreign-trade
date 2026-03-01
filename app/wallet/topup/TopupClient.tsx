@@ -4,8 +4,9 @@ import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
-import { ArrowLeft, Loader2, CheckCircle2, Clock } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle2, Clock, ZoomIn, X, Copy } from "lucide-react"
 import Link from "next/link"
+import UploadButton from "@/components/UploadButton"
 import type { PaginatedResponse, PaymentRequestItem } from "@/lib/types"
 
 type QrCode = {
@@ -28,6 +29,9 @@ export default function TopupClient() {
   const [method, setMethod] = useState<"WECHAT" | "ALIPAY">("WECHAT")
   const [selectedQr, setSelectedQr] = useState<QrCode | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [screenshotUrl, setScreenshotUrl] = useState("")
+  const [referenceNo, setReferenceNo] = useState("")
+  const [showQrModal, setShowQrModal] = useState(false)
 
   const { data: qrCodes = [] } = useQuery<QrCode[]>({
     queryKey: ["payment-qr", method],
@@ -52,19 +56,30 @@ export default function TopupClient() {
   const handleSubmit = async () => {
     setSubmitting(true)
     try {
-      await api.createPaymentRequest({
+      const result = await api.createPaymentRequest({
         amount: Number(amount),
         paymentMethod: method,
         qrCodeId: selectedQr?.id,
-        note: undefined
+        note: undefined,
+        screenshotUrl: screenshotUrl || undefined
       })
       toast.success("充值请求已提交，请等待管理员审核")
+      setReferenceNo(result.referenceNo)
       setStep("submitted")
       queryClient.invalidateQueries({ queryKey: ["my-payment-requests"] })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "提交失败")
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const copyRef = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success("已复制")
+    } catch {
+      toast.error("复制失败")
     }
   }
 
@@ -169,12 +184,23 @@ export default function TopupClient() {
                     <span className="text-sm font-medium">{qr.label ?? methodLabel[qr.type]}</span>
                     {selectedQr?.id === qr.id && <CheckCircle2 className="h-4 w-4 text-accent" />}
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-2 relative group">
                     <img
                       src={qr.imageUrl}
                       alt="收款二维码"
                       className="mx-auto h-48 w-48 rounded-lg bg-white object-contain p-2"
                     />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedQr(qr)
+                        setShowQrModal(true)
+                      }}
+                      className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition group-hover:opacity-100"
+                    >
+                      <ZoomIn className="h-5 w-5" />
+                    </button>
                   </div>
                 </button>
               ))}
@@ -184,6 +210,16 @@ export default function TopupClient() {
               暂无可用的{methodLabel[method]}收款码，请联系管理员
             </div>
           )}
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-white/60">上传支付截图（可选）</label>
+            <UploadButton
+              folder="payment-screenshots"
+              onUploaded={(url) => setScreenshotUrl(url)}
+              currentUrl={screenshotUrl || undefined}
+              label="上传支付截图"
+            />
+          </div>
 
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200">
             请在完成支付后，点击下方按钮确认。管理员审核通过后，余额将自动到账。
@@ -209,6 +245,20 @@ export default function TopupClient() {
           <CheckCircle2 className="mx-auto h-12 w-12 text-accent" />
           <h2 className="text-lg font-semibold">充值请求已提交</h2>
           <p className="text-sm text-white/50">管理员审核通过后，余额将自动到账。</p>
+          {referenceNo && (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="text-xs text-white/40 mb-1">订单编号</div>
+              <div className="flex items-center justify-center gap-2">
+                <span className="font-mono text-sm font-medium text-accent">{referenceNo}</span>
+                <button
+                  onClick={() => copyRef(referenceNo)}
+                  className="rounded p-1 text-white/40 hover:text-white transition"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
           <div className="flex gap-3">
             <Link href="/wallet" className="btn-outline flex-1 text-sm">返回钱包</Link>
             <button
@@ -217,10 +267,39 @@ export default function TopupClient() {
                 setStep("amount")
                 setAmount("")
                 setSelectedQr(null)
+                setScreenshotUrl("")
+                setReferenceNo("")
               }}
             >
               继续充值
             </button>
+          </div>
+        </div>
+      )}
+
+      {showQrModal && selectedQr && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          onClick={() => setShowQrModal(false)}
+        >
+          <div
+            className="relative rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="absolute -right-3 -top-3 rounded-full bg-gray-800 p-1.5 text-white/70 hover:text-white transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <img
+              src={selectedQr.imageUrl}
+              alt="收款二维码"
+              className="h-80 w-80 object-contain"
+            />
+            <div className="mt-3 text-center text-sm text-gray-600">
+              {selectedQr.label ?? methodLabel[selectedQr.type]}
+            </div>
           </div>
         </div>
       )}
@@ -234,6 +313,9 @@ export default function TopupClient() {
                 <div>
                   <span className="font-medium">¥{r.amount.toFixed(2)}</span>
                   <span className="ml-2 text-xs text-white/40">{methodLabel[r.paymentMethod]}</span>
+                  {r.referenceNo && (
+                    <span className="ml-2 font-mono text-xs text-white/30">{r.referenceNo}</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {r.status === "PENDING" && <Clock className="h-3.5 w-3.5 text-amber-400" />}

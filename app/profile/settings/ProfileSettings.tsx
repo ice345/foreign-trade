@@ -96,6 +96,7 @@ export default function ProfileSettings() {
             folder="avatars"
             onUploaded={(url) => setAvatar(url)}
             currentUrl={avatar}
+            circular
           />
         </div>
 

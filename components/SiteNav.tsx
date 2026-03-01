@@ -133,6 +133,32 @@ export default function SiteNav() {
                 <X size={22} />
               </button>
 
+              {user && (
+                <div className="mb-4 flex items-center gap-3 rounded-xl bg-white/5 px-3 py-3">
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt=""
+                      className="h-10 w-10 rounded-full object-cover border border-white/10"
+                    />
+                  ) : (
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/20 text-sm font-semibold text-accent">
+                      {(user.nickname || user.email || user.phone || "U").charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-white">
+                      {user.nickname || user.email || user.phone}
+                    </div>
+                    {user.nickname && (user.email || user.phone) && (
+                      <div className="truncate text-xs text-white/40">
+                        {user.email || user.phone}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {baseLinks.map((link) => (
                 <Link
                   key={link.href}

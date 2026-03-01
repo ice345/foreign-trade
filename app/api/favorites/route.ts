@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { toNumberOrNull } from "@/lib/decimal";
 
 export async function GET(request: Request) {
   try {
@@ -13,20 +14,41 @@ export async function GET(request: Request) {
         where: { userId: user.id },
         include: { resource: true }
       });
+
+      const resourceIds = favorites.map((fav) => fav.resource.id);
+      const reviewStats = await prisma.review.groupBy({
+        by: ["resourceId"],
+        where: { resourceId: { in: resourceIds } },
+        _avg: { rating: true },
+        _count: true
+      });
+
+      const statsMap = new Map(
+        reviewStats.map((s) => [
+          s.resourceId,
+          { averageRating: s._avg.rating, reviewCount: s._count }
+        ])
+      );
+
       return NextResponse.json({
-        resources: favorites.map((fav) => ({
-          id: fav.resource.id,
-          title: fav.resource.title,
-          description: fav.resource.description,
-          category: fav.resource.category,
-          country: fav.resource.country,
-          platform: fav.resource.platform,
-          status: fav.resource.status,
-          image: fav.resource.image,
-          price: fav.resource.price,
-          badge: fav.resource.badge,
-          followers: fav.resource.followers
-        }))
+        resources: favorites.map((fav) => {
+          const stats = statsMap.get(fav.resource.id);
+          return {
+            id: fav.resource.id,
+            title: fav.resource.title,
+            description: fav.resource.description,
+            category: fav.resource.category,
+            country: fav.resource.country,
+            platform: fav.resource.platform,
+            status: fav.resource.status,
+            image: fav.resource.image,
+            price: toNumberOrNull(fav.resource.price as any),
+            badge: fav.resource.badge,
+            followers: fav.resource.followers,
+            averageRating: stats?.averageRating ?? null,
+            reviewCount: stats?.reviewCount ?? 0
+          };
+        })
       });
     }
 

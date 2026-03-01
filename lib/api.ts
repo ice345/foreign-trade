@@ -122,8 +122,8 @@ export const api = {
     fetcher<{ id: string; type: string; imageUrl: string; label?: string }[]>(
       `/api/payment-qr${type ? `?type=${type}` : ""}`
     ),
-  createPaymentRequest: (payload: { amount: number; paymentMethod: string; qrCodeId?: string; note?: string }) =>
-    fetcher<{ success: true }>("/api/payment-requests", {
+  createPaymentRequest: (payload: { amount: number; paymentMethod: string; qrCodeId?: string; note?: string; screenshotUrl?: string }) =>
+    fetcher<{ success: true; referenceNo: string }>("/api/payment-requests", {
       method: "POST",
       body: JSON.stringify(payload)
     }),

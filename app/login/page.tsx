@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 
 type FormValues = {
   identifier: string;
@@ -51,6 +52,14 @@ export default function LoginPage() {
           <button className="btn w-full" type="submit" disabled={formState.isSubmitting}>
             立即登录
           </button>
+          <div className="flex items-center justify-between text-sm">
+            <Link href="/forgot-password" className="text-white/50 hover:text-accent transition">
+              忘记密码?
+            </Link>
+            <Link href="/register" className="text-white/50 hover:text-accent transition">
+              没有账号? 注册
+            </Link>
+          </div>
         </form>
       </div>
     </div>

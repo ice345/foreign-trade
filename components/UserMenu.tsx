@@ -38,12 +38,23 @@ export default function UserMenu() {
   }
 
   const displayName = user.nickname || user.email || user.phone;
+  const initial = (displayName ?? "U").charAt(0).toUpperCase();
 
   return (
     <div className="flex items-center gap-3 text-xs text-white/70">
-      <span className="hidden md:inline">{displayName}</span>
-      <Link href="/profile/settings" className="btn-outline text-xs">
-        设置
+      <Link href="/profile/settings" className="flex items-center gap-2">
+        {user.avatar ? (
+          <img
+            src={user.avatar}
+            alt=""
+            className="h-7 w-7 rounded-full object-cover border border-white/10"
+          />
+        ) : (
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20 text-xs font-semibold text-accent">
+            {initial}
+          </span>
+        )}
+        <span className="hidden md:inline">{displayName}</span>
       </Link>
       <button className="btn text-xs" onClick={logout}>
         退出

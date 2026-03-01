@@ -11,7 +11,8 @@ export const paymentRequestSchema = z.object({
   amount: z.number().positive("金额必须大于 0").max(100000, "单次充值金额不能超过 100000"),
   paymentMethod: z.enum(["WECHAT", "ALIPAY"], { message: "支付方式必须为 WECHAT 或 ALIPAY" }),
   qrCodeId: z.string().optional(),
-  note: z.string().max(500, "备注不能超过 500 字").optional()
+  note: z.string().max(500, "备注不能超过 500 字").optional(),
+  screenshotUrl: z.string().url("截图链接格式不正确").optional().or(z.literal(""))
 })
 
 export const approvePaymentSchema = z.object({
