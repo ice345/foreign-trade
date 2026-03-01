@@ -60,7 +60,7 @@ export async function GET() {
     return NextResponse.json({
       summary: {
         totalOrders,
-        totalRevenue: totalRevenue._sum.amount ?? 0,
+        totalRevenue: Number(totalRevenue._sum.amount ?? 0),
         pendingOrders,
         activeResources,
         totalUsers

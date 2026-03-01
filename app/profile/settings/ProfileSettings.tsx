@@ -6,7 +6,7 @@ import { fetcherOrNull, api } from "@/lib/api"
 import type { UserProfile } from "@/lib/types"
 import { toast } from "sonner"
 import { User, Lock, Loader2 } from "lucide-react"
-import UploadButton from "@/components/UploadButton"
+import AvatarUpload from "@/components/AvatarUpload"
 
 export default function ProfileSettings() {
   const queryClient = useQueryClient()
@@ -92,11 +92,10 @@ export default function ProfileSettings() {
 
         <div>
           <label className="mb-1.5 block text-xs font-medium text-white/60">头像</label>
-          <UploadButton
+          <AvatarUpload
             folder="avatars"
             onUploaded={(url) => setAvatar(url)}
             currentUrl={avatar}
-            circular
           />
         </div>
 

@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth"
 import { paymentRequestSchema } from "@/lib/validations/payment"
 import { parsePagination } from "@/lib/pagination"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { notifyAdmins } from "@/lib/notifications"
 
 function generateReferenceNo(): string {
   const date = new Date()
@@ -82,6 +83,14 @@ export async function POST(req: Request) {
         status: "PENDING"
       }
     })
+
+    const methodLabel = parsed.data.paymentMethod === "WECHAT" ? "微信支付" : "支付宝"
+    notifyAdmins({
+      type: "BALANCE_TOPUP",
+      title: "新充值申请",
+      message: `用户提交了 ¥${parsed.data.amount.toFixed(2)} 的充值申请（${methodLabel}），编号：${referenceNo}`,
+      sendEmail: true
+    }).catch(() => {})
 
     return NextResponse.json({ success: true, id: request.id, referenceNo })
   } catch (error) {

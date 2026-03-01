@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import HeroBackground from "@/components/HeroBackground";
+import HeroButtons from "@/components/HeroButtons";
 import ResourceStrip from "@/components/ResourceStrip";
 
 export default function HomePage() {
@@ -31,14 +32,7 @@ export default function HomePage() {
           <Suspense fallback={<div className="h-12 rounded-full bg-white/5 animate-pulse" />}>
             <SearchBar />
           </Suspense>
-          <div className="flex flex-wrap gap-4">
-            <Link href="/explore" className="btn-primary">
-              开始探索
-            </Link>
-            <Link href="/admin/resources" className="btn-outline">
-              进入管理后台
-            </Link>
-          </div>
+          <HeroButtons />
           <div className="flex flex-wrap gap-8 text-xs text-white/60">
             <div>
               <div className="text-lg font-semibold text-white">2,400+</div>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { createNotification } from "@/lib/notifications";
+import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { SERVICE_FEE } from "@/lib/constants";
 import { toNumberOrNull } from "@/lib/decimal";
 
@@ -112,6 +112,14 @@ export async function POST(req: Request) {
         sendEmail: true
       }).catch(() => {});
     }
+
+    const orderSummary = createdOrders.map((o) => o.resourceTitle).join("、")
+    notifyAdmins({
+      type: "ORDER_CREATED",
+      title: "新订单通知",
+      message: `用户提交了 ${createdOrders.length} 个新订单：${orderSummary}`,
+      sendEmail: true
+    }).catch(() => {})
 
     return NextResponse.json({ success: true, orderCount: createdOrders.length });
   } catch (error) {

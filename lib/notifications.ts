@@ -51,6 +51,32 @@ export async function createNotification({
   return notification
 }
 
+export async function notifyAdmins({
+  type,
+  title,
+  message,
+  orderId,
+  sendEmail: shouldEmail = true
+}: Omit<CreateNotificationParams, "userId">) {
+  const admins = await prisma.user.findMany({
+    where: { role: "ADMIN" },
+    select: { id: true }
+  })
+
+  const promises = admins.map((admin) =>
+    createNotification({
+      userId: admin.id,
+      type,
+      title,
+      message,
+      orderId,
+      sendEmail: shouldEmail
+    }).catch(() => {})
+  )
+
+  await Promise.allSettled(promises)
+}
+
 export async function getUnreadCount(userId: string) {
   return prisma.notification.count({
     where: { userId, read: false }

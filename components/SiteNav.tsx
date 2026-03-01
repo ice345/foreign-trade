@@ -115,7 +115,7 @@ export default function SiteNav() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/60"
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
               onClick={() => setDrawerOpen(false)}
             />
             <motion.nav
@@ -164,9 +164,9 @@ export default function SiteNav() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setDrawerOpen(false)}
-                  className={`rounded px-3 py-2.5 text-sm transition ${
+                  className={`rounded-lg px-3 py-2.5 text-sm transition ${
                     pathname === link.href
-                      ? "bg-white/10 text-white"
+                      ? "border-l-2 border-accent bg-accent/10 pl-2.5 font-medium text-white"
                       : "text-white/70 hover:bg-white/5 hover:text-white"
                   }`}
                 >
@@ -184,9 +184,9 @@ export default function SiteNav() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setDrawerOpen(false)}
-                      className={`rounded px-3 py-2.5 text-sm transition ${
+                      className={`rounded-lg px-3 py-2.5 text-sm transition ${
                         pathname === link.href
-                          ? "bg-white/10 text-white"
+                          ? "border-l-2 border-accent bg-accent/10 pl-2.5 font-medium text-white"
                           : "text-white/70 hover:bg-white/5 hover:text-white"
                       }`}
                     >
@@ -206,9 +206,9 @@ export default function SiteNav() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setDrawerOpen(false)}
-                      className={`rounded px-3 py-2.5 text-sm transition ${
+                      className={`rounded-lg px-3 py-2.5 text-sm transition ${
                         pathname === link.href
-                          ? "bg-white/10 text-white"
+                          ? "border-l-2 border-accent bg-accent/10 pl-2.5 font-medium text-white"
                           : "text-white/70 hover:bg-white/5 hover:text-white"
                       }`}
                     >
