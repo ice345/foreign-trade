@@ -1,4 +1,11 @@
 import OrderTracking from "@/components/OrderTracking";
+import { buildMetadata } from "@/lib/metadata";
+
+export const metadata = buildMetadata({
+  title: "进度追踪 — GlobalPush",
+  description: "查看推广订单执行状态与结果反馈。",
+  robots: { index: false, follow: false },
+});
 
 export default function OrdersPage() {
   return (

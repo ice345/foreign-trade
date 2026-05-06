@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { Prisma, Resource, ResourceStatus } from "@prisma/client";
 import { createResourceSchema } from "@/lib/validations/resource";
 import { parsePagination } from "@/lib/pagination";
-import { toNumberOrNull } from "@/lib/decimal";
+import { serializeResource, serializeResourceSummary } from "@/lib/serializers";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -21,8 +21,12 @@ export async function GET(request: Request) {
   if (mode === "admin") {
     try {
       await requireAdmin();
-    } catch {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    } catch (error) {
+      if (error instanceof Error && error.message === "Unauthorized") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      console.error("[Resources Admin Check Error]", error);
+      return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
     }
   }
 
@@ -91,10 +95,7 @@ export async function GET(request: Request) {
 
   if (mode === "admin") {
     return NextResponse.json({
-      data: data.map((item) => ({
-        ...item,
-        price: toNumberOrNull(item.price as any)
-      })),
+      data: data.map(serializeResource),
       total,
       page,
       pageSize
@@ -120,17 +121,7 @@ export async function GET(request: Request) {
     data: data.map((item) => {
       const stats = statsMap.get(item.id);
       return {
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        category: item.category,
-        country: item.country,
-        platform: item.platform,
-        status: item.status,
-        image: item.image,
-        price: toNumberOrNull(item.price as any),
-        badge: item.badge,
-        followers: item.followers,
+        ...serializeResourceSummary(item),
         averageRating: stats?.averageRating ?? null,
         reviewCount: stats?.reviewCount ?? 0
       };
@@ -172,10 +163,7 @@ export async function POST(request: Request) {
         categoryId: data.categoryId ?? null
       }
     });
-    return NextResponse.json({
-      ...resource,
-      price: toNumberOrNull(resource.price as any)
-    });
+    return NextResponse.json(serializeResource(resource));
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

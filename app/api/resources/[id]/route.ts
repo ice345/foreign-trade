@@ -2,20 +2,21 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { updateResourceSchema } from "@/lib/validations/resource";
-import { toNumberOrNull } from "@/lib/decimal";
+import { serializeResource } from "@/lib/serializers";
 
 type Props = { params: { id: string } };
 
 export async function GET(_: Request, { params }: Props) {
-  const resource = await prisma.resource.findUnique({ where: { id: params.id } });
-  if (!resource) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  try {
+    const resource = await prisma.resource.findUnique({ where: { id: params.id } });
+    if (!resource) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json(serializeResource(resource));
+  } catch (error) {
+    console.error("[Resource GET Error]", error);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
   }
-  return NextResponse.json({
-    ...resource,
-    price: toNumberOrNull(resource.price as any),
-    createdAt: resource.createdAt.toISOString()
-  });
 }
 
 export async function PUT(request: Request, { params }: Props) {
@@ -50,10 +51,7 @@ export async function PUT(request: Request, { params }: Props) {
         ...(data.categoryId !== undefined && { categoryId: data.categoryId ?? null })
       }
     });
-    return NextResponse.json({
-      ...resource,
-      price: toNumberOrNull(resource.price as any)
-    });
+    return NextResponse.json(serializeResource(resource));
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

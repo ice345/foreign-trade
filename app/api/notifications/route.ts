@@ -27,7 +27,11 @@ export async function GET(req: Request) {
     ])
 
     return NextResponse.json({ data, total, unreadCount, page, pageSize })
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    console.error("[Notifications GET Error]", error);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 })
   }
 }

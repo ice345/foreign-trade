@@ -1,6 +1,12 @@
 import { Suspense } from "react";
 import ExploreClient from "./ExploreClient";
 import MarketFilters from "@/components/MarketFilters";
+import { buildMetadata } from "@/lib/metadata";
+
+export const metadata = buildMetadata({
+  title: "资源探索 — GlobalPush",
+  description: "浏览海外推广渠道、媒体评测、返利平台与优惠资源，支持按国家、平台、类目筛选。",
+});
 
 export default function ExplorePage() {
   return (

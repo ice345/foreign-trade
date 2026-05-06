@@ -74,7 +74,7 @@ export async function PUT(req: Request, { params }: Props) {
         title: "充值成功",
         message: `您的充值请求 ¥${amount.toFixed(2)} 已通过审核，余额已更新。`,
         sendEmail: true
-      }).catch(() => {})
+      }).catch((err) => console.error("[Payment Approved Notification Error]", err))
     } else {
       createNotification({
         userId: result.userId,
@@ -82,7 +82,7 @@ export async function PUT(req: Request, { params }: Props) {
         title: "充值请求被拒绝",
         message: `您的充值请求 ¥${amount.toFixed(2)} 已被拒绝。${note ? `原因：${note}` : ""}`,
         sendEmail: true
-      }).catch(() => {})
+      }).catch((err) => console.error("[Payment Rejected Notification Error]", err))
     }
 
     return NextResponse.json({ success: true })

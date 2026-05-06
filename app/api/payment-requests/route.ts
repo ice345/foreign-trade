@@ -43,8 +43,12 @@ export async function GET(req: Request) {
       page,
       pageSize
     })
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    console.error("[Payment Requests GET Error]", error);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 })
   }
 }
 
@@ -90,7 +94,7 @@ export async function POST(req: Request) {
       title: "新充值申请",
       message: `用户提交了 ¥${parsed.data.amount.toFixed(2)} 的充值申请（${methodLabel}），编号：${referenceNo}`,
       sendEmail: true
-    }).catch(() => {})
+    }).catch((err) => console.error("[Payment Request Notify Error]", err))
 
     return NextResponse.json({ success: true, id: request.id, referenceNo })
   } catch (error) {

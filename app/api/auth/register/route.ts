@@ -64,7 +64,8 @@ export async function POST(request: Request) {
       success: true,
       data: { id: user.id, email: user.email, phone: user.phone }
     })
-  } catch {
+  } catch (error) {
+    console.error("[Register Error]", error);
     return NextResponse.json(
       { success: false, error: "注册失败" },
       { status: 500 }

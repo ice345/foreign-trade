@@ -1,4 +1,11 @@
 import ProfileClient from "./ProfileClient";
+import { buildMetadata } from "@/lib/metadata";
+
+export const metadata = buildMetadata({
+  title: "收藏中心 — GlobalPush",
+  description: "查看和管理你收藏的推广资源。",
+  robots: { index: false, follow: false },
+});
 
 export default function ProfilePage() {
   return (

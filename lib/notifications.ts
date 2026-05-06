@@ -39,12 +39,13 @@ export async function createNotification({
           <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
           <p style="color:#999;font-size:12px">— GlobalPush</p>
         </div>`
-      }).catch(() => {})
+      }).catch((err) => console.error("[Notification Email Error]", err))
     }
 
     if (user?.phone) {
       const { sendSMS } = await import("@/lib/sms")
-      await sendSMS(user.phone, `【GlobalPush】${title}: ${message}`).catch(() => {})
+      await sendSMS(user.phone, `【GlobalPush】${title}: ${message}`)
+        .catch((err) => console.error("[Notification SMS Error]", err))
     }
   }
 
@@ -71,7 +72,7 @@ export async function notifyAdmins({
       message,
       orderId,
       sendEmail: shouldEmail
-    }).catch(() => {})
+    }).catch((err) => console.error("[Notify Admin Error]", err))
   )
 
   await Promise.allSettled(promises)

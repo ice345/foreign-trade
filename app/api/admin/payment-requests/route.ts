@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     const { page, pageSize, skip, take } = parsePagination(searchParams)
     const status = searchParams.get("status")
 
-    const where: any = {}
+    const where: { status?: "PENDING" | "APPROVED" | "REJECTED" } = {}
     if (status === "PENDING" || status === "APPROVED" || status === "REJECTED") {
       where.status = status
     }

@@ -14,8 +14,12 @@ export async function GET(req: Request) {
     if (mode === "admin") {
       try {
         await requireAdmin();
-      } catch {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      } catch (error) {
+        if (error instanceof Error && error.message === "Unauthorized") {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        console.error("[Orders Admin Check Error]", error);
+        return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
       }
 
       const { page, pageSize, skip, take } = parsePagination(searchParams);
@@ -36,8 +40,8 @@ export async function GET(req: Request) {
       return NextResponse.json({
         data: orders.map((o) => ({
           ...o,
-          amount: toNumberOrNull(o.amount as any),
-          finalPrice: toNumberOrNull(o.finalPrice as any)
+          amount: toNumberOrNull(o.amount),
+          finalPrice: toNumberOrNull(o.finalPrice)
         })),
         total,
         page,
@@ -57,12 +61,16 @@ export async function GET(req: Request) {
     return NextResponse.json(
       orders.map((o) => ({
         ...o,
-        amount: toNumberOrNull(o.amount as any),
-        finalPrice: toNumberOrNull(o.finalPrice as any)
+        amount: toNumberOrNull(o.amount),
+        finalPrice: toNumberOrNull(o.finalPrice)
       }))
     );
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("[Orders GET Error]", error);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
   }
 }
 
@@ -149,9 +157,9 @@ export async function POST(req: Request) {
       message: `您的推广订单「${resource.title}」已提交，等待处理中。`,
       orderId: order.id,
       sendEmail: true
-    }).catch(() => {});
+    }).catch((err) => console.error("[Order Notification Error]", err));
 
-    return NextResponse.json({ success: true, order: { ...order, amount: toNumberOrNull(order.amount as any), finalPrice: toNumberOrNull(order.finalPrice as any) } });
+    return NextResponse.json({ success: true, order: { ...order, amount: toNumberOrNull(order.amount), finalPrice: toNumberOrNull(order.finalPrice) } });
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "Unauthorized") {

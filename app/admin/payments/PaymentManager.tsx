@@ -161,7 +161,7 @@ export default function PaymentManager() {
                   <select
                     className="input w-full cursor-pointer appearance-none"
                     value={qrType}
-                    onChange={(e) => setQrType(e.target.value as any)}
+                    onChange={(e) => setQrType(e.target.value as "WECHAT" | "ALIPAY")}
                   >
                     <option value="WECHAT" className="bg-panel">微信支付</option>
                     <option value="ALIPAY" className="bg-panel">支付宝</option>

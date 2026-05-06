@@ -21,7 +21,7 @@ export default async function AdminResourcePage({ params }: Props) {
       <AdminResourceEditor
         resource={{
           ...resource,
-          price: toNumberOrNull(resource.price as any),
+          price: toNumberOrNull(resource.price),
           createdAt: resource.createdAt.toISOString(),
           status: resource.status as "ACTIVE" | "HIDDEN"
         }}

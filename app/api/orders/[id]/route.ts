@@ -55,7 +55,7 @@ export async function PUT(req: Request, { params }: Props) {
         message: `您的订单「${order.resource?.title ?? ""}」状态已更新为：${statusLabels[data.status] ?? data.status}`,
         orderId: order.id,
         sendEmail: true
-      }).catch(() => {});
+      }).catch((err) => console.error("[Order Status Notification Error]", err));
     }
 
     return NextResponse.json(order);
@@ -124,7 +124,7 @@ export async function DELETE(_req: Request, { params }: Props) {
       title: "订单已删除",
       message: `您的订单「${order.resource?.title ?? ""}」已被管理员删除。${orderAmount > 0 && order.status !== "CONFIRMED" ? `已退款 ¥${orderAmount.toFixed(2)}` : ""}`,
       sendEmail: true
-    }).catch(() => {});
+    }).catch((err) => console.error("[Order Delete Notification Error]", err));
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -110,7 +110,7 @@ export async function POST(req: Request) {
         message: `您的推广订单「${order.resourceTitle}」已提交，等待处理中。`,
         orderId: order.id,
         sendEmail: true
-      }).catch(() => {});
+      }).catch((err) => console.error("[Batch Order Notification Error]", err));
     }
 
     const orderSummary = createdOrders.map((o) => o.resourceTitle).join("、")
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
       title: "新订单通知",
       message: `用户提交了 ${createdOrders.length} 个新订单：${orderSummary}`,
       sendEmail: true
-    }).catch(() => {})
+    }).catch((err) => console.error("[Batch Order Admin Notify Error]", err))
 
     return NextResponse.json({ success: true, orderCount: createdOrders.length });
   } catch (error) {

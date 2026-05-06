@@ -1,6 +1,11 @@
-"use client"
-
 import TopupClient from "./TopupClient"
+import { buildMetadata } from "@/lib/metadata"
+
+export const metadata = buildMetadata({
+  title: "在线充值 — GlobalPush",
+  description: "通过微信或支付宝为你的 GlobalPush 账户充值。",
+  robots: { index: false, follow: false },
+})
 
 export default function TopupPage() {
   return (

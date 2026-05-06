@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { toNumberOrNull } from "@/lib/decimal";
+import { serializeResourceSummary } from "@/lib/serializers";
 
 export async function GET(request: Request) {
   try {
@@ -34,17 +34,7 @@ export async function GET(request: Request) {
         resources: favorites.map((fav) => {
           const stats = statsMap.get(fav.resource.id);
           return {
-            id: fav.resource.id,
-            title: fav.resource.title,
-            description: fav.resource.description,
-            category: fav.resource.category,
-            country: fav.resource.country,
-            platform: fav.resource.platform,
-            status: fav.resource.status,
-            image: fav.resource.image,
-            price: toNumberOrNull(fav.resource.price as any),
-            badge: fav.resource.badge,
-            followers: fav.resource.followers,
+            ...serializeResourceSummary(fav.resource),
             averageRating: stats?.averageRating ?? null,
             reviewCount: stats?.reviewCount ?? 0
           };
@@ -56,8 +46,12 @@ export async function GET(request: Request) {
       where: { userId: user.id }
     });
     return NextResponse.json(favorites.map((fav) => fav.resourceId));
-  } catch {
-    return new NextResponse("Unauthorized", { status: 401 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+    console.error("[Favorites GET Error]", error);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
   }
 }
 
@@ -77,7 +71,11 @@ export async function POST(request: Request) {
       data: { userId: user.id, resourceId }
     });
     return NextResponse.json({ ok: true });
-  } catch {
-    return new NextResponse("Unauthorized", { status: 401 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+    console.error("[Favorites POST Error]", error);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
   }
 }

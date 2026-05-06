@@ -74,7 +74,11 @@ export async function GET() {
         topUsers
       }
     })
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    console.error("[Admin Stats Error]", error);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 })
   }
 }

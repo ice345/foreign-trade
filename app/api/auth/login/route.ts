@@ -50,7 +50,8 @@ export async function POST(request: Request) {
     const token = await createToken({ userId: user.id, role: user.role });
     await setSessionToken(token);
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    console.error("[Login Error]", error);
     return NextResponse.json({ error: "登录失败" }, { status: 500 });
   }
 }

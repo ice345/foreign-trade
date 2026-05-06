@@ -59,14 +59,14 @@ export async function DELETE(
         to: targetUser.email,
         subject: "GlobalPush 账号已被删除",
         html: `<p>您的 GlobalPush 账号已被管理员删除。</p><p><strong>原因：</strong>${reason}</p><p>如有疑问，请联系客服。</p>`
-      }).catch(() => {})
+      }).catch((err) => console.error("[User Delete Email Error]", err))
     }
 
     if (targetUser.phone) {
       sendSMS(
         targetUser.phone,
         `您的 GlobalPush 账号已被管理员删除。原因：${reason}。如有疑问请联系客服。`
-      ).catch(() => {})
+      ).catch((err) => console.error("[User Delete SMS Error]", err))
     }
 
     return NextResponse.json({ success: true })
