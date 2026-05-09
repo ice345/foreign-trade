@@ -14,10 +14,11 @@ type SendEmailParams = {
 
 export async function sendEmail({ to, subject, html }: SendEmailParams) {
   if (!resend) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV !== "production") {
       console.info(`[Dev Email] To: ${to} | Subject: ${subject}`)
+      return
     }
-    return
+    throw new Error("邮件服务未配置")
   }
 
   await resend.emails.send({

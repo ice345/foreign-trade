@@ -52,9 +52,16 @@ export async function rateLimitByIp(
   windowMs: number
 ): Promise<{ allowed: boolean; retryAfterMs: number }> {
   const forwarded = request.headers.get("x-forwarded-for")
-  const ip = forwarded?.split(",")[0]?.trim() ?? "unknown"
-  const key = `${prefix}:${ip}`
+  const realIp = request.headers.get("x-real-ip")
+  const ip = forwarded?.split(",")[0]?.trim() || realIp?.trim() || "unknown"
+  return rateLimitByKey(`${prefix}:ip:${ip}`, maxRequests, windowMs)
+}
 
+export async function rateLimitByKey(
+  key: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<{ allowed: boolean; retryAfterMs: number }> {
   try {
     const { prisma } = await import("@/lib/prisma")
     const now = new Date()

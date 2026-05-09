@@ -96,6 +96,10 @@ function getProvider(): SmsProvider {
 }
 
 export async function sendSMS(phone: string, message: string) {
+  if ((process.env.SMS_PROVIDER ?? "stub") === "stub" && process.env.NODE_ENV === "production") {
+    throw new Error("短信服务未配置")
+  }
+
   const provider = getProvider()
   await provider.send(phone, message)
 }

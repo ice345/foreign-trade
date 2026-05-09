@@ -15,7 +15,7 @@ function generateCode(): string {
 export async function sendVerificationCode(
   target: string,
   type: "EMAIL" | "PHONE"
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; code?: string }> {
   const recent = await prisma.verificationCode.findFirst({
     where: {
       target,
@@ -48,17 +48,31 @@ export async function sendVerificationCode(
     console.info(`[DEV] Verification code for ${target}: ${code}`)
   }
 
-  if (type === "EMAIL") {
-    await sendEmail({
-      to: target,
-      subject: "GlobalPush 验证码",
-      html: `<p>您的验证码是：<strong>${code}</strong>，${CODE_EXPIRY_MINUTES} 分钟内有效。</p>`
+  try {
+    if (type === "EMAIL") {
+      await sendEmail({
+        to: target,
+        subject: "GlobalPush 验证码",
+        html: `<p>您的验证码是：<strong>${code}</strong>，${CODE_EXPIRY_MINUTES} 分钟内有效。</p>`
+      })
+    } else {
+      await sendSMS(target, `您的验证码是：${code}，${CODE_EXPIRY_MINUTES} 分钟内有效。`)
+    }
+  } catch (error) {
+    await prisma.verificationCode.updateMany({
+      where: { target, code, used: false },
+      data: { used: true }
     })
-  } else {
-    await sendSMS(target, `您的验证码是：${code}，${CODE_EXPIRY_MINUTES} 分钟内有效。`)
+
+    console.error("[Verification Send Error]", error)
+    const message = error instanceof Error ? error.message : "验证码发送失败"
+    return { success: false, error: message }
   }
 
-  return { success: true }
+  return {
+    success: true,
+    ...(process.env.NODE_ENV !== "production" ? { code } : {})
+  }
 }
 
 export async function verifyCode(target: string, code: string): Promise<boolean> {

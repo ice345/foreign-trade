@@ -30,13 +30,17 @@ export async function POST(request: Request) {
     const result = await sendVerificationCode(normalizedTarget, type)
 
     if (!result.success) {
+      const isRateLimited = result.error?.includes("等待")
       return NextResponse.json(
         { success: false, error: result.error },
-        { status: 429 }
+        { status: isRateLimited ? 429 : 503 }
       )
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      ...(result.code ? { code: result.code } : {})
+    })
   } catch (error) {
     console.error("[Forgot Password Error]", error);
     return NextResponse.json(
