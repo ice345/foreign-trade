@@ -7,17 +7,18 @@ import { toNumberOrNull } from "@/lib/decimal";
 import { buildMetadata, buildResourceJsonLd } from "@/lib/metadata";
 import type { Metadata } from "next";
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
   const resource = await prisma.resource.findUnique({
-    where: { id: params.id },
-    select: { title: true, description: true, category: true, image: true },
+    where: { id },
+    select: { title: true, description: true, category: true, image: true, status: true },
   });
 
-  if (!resource) {
+  if (!resource || resource.status === "HIDDEN") {
     return buildMetadata({ title: "资源未找到 — GlobalPush" });
   }
 
@@ -33,16 +34,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ResourceDetailPage({ params }: Props) {
+  const { id } = await params;
   const resource = await prisma.resource.findUnique({
-    where: { id: params.id }
+    where: { id }
   });
 
   if (!resource) return notFound();
+  if (resource.status === "HIDDEN") return notFound();
 
   const price = toNumberOrNull(resource.price);
 
   const reviewStats = await prisma.review.aggregate({
-    where: { resourceId: params.id },
+    where: { resourceId: id },
     _avg: { rating: true },
     _count: true
   });
@@ -100,7 +103,7 @@ export default async function ResourceDetailPage({ params }: Props) {
                   <span>/ 5 · 共 {reviewStats._count} 条评价</span>
                 </div>
               )}
-              <ResourceReviews resourceId={params.id} />
+              <ResourceReviews resourceId={id} />
             </div>
           </div>
           <aside className="card space-y-4">

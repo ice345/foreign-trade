@@ -4,11 +4,12 @@ import { requireAdmin } from "@/lib/auth"
 import { approvePaymentSchema } from "@/lib/validations/payment"
 import { createNotification } from "@/lib/notifications"
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 export async function PUT(req: Request, { params }: Props) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
+    const { id } = await params
     const body = await req.json()
     const parsed = approvePaymentSchema.safeParse(body)
 
@@ -19,11 +20,12 @@ export async function PUT(req: Request, { params }: Props) {
       )
     }
 
-    const { status, note } = parsed.data
+    const { status } = parsed.data
+    const reviewNote = parsed.data.reviewNote ?? parsed.data.note
 
     const result = await prisma.$transaction(async (tx) => {
       const request = await tx.paymentRequest.findUnique({
-        where: { id: params.id }
+        where: { id }
       })
 
       if (!request) {
@@ -34,22 +36,40 @@ export async function PUT(req: Request, { params }: Props) {
         throw new Error("ALREADY_PROCESSED")
       }
 
-      const updated = await tx.paymentRequest.update({
-        where: { id: params.id },
+      if (status === "APPROVED" && !request.screenshotUrl) {
+        throw new Error("MISSING_SCREENSHOT")
+      }
+
+      const updateResult = await tx.paymentRequest.updateMany({
+        where: { id, status: "PENDING" },
         data: {
           status,
-          ...(note !== undefined && { note })
+          reviewedAt: new Date(),
+          reviewedById: admin.id,
+          ...(reviewNote !== undefined && { reviewNote })
         }
       })
 
+      if (updateResult.count === 0) {
+        throw new Error("ALREADY_PROCESSED")
+      }
+
       if (status === "APPROVED") {
         const amount = Number(request.amount)
-
-        const wallet = await tx.wallet.upsert({
-          where: { userId: request.userId },
-          update: { balance: { increment: amount } },
-          create: { userId: request.userId, balance: amount }
+        const existingWallet = await tx.wallet.findUnique({
+          where: { userId: request.userId }
         })
+        const beforeBalance = existingWallet ? Number(existingWallet.balance) : 0
+        const afterBalance = beforeBalance + amount
+
+        const wallet = existingWallet
+          ? await tx.wallet.update({
+              where: { userId: request.userId },
+              data: { balance: { increment: amount } }
+            })
+          : await tx.wallet.create({
+              data: { userId: request.userId, balance: amount }
+            })
 
         await tx.transaction.create({
           data: {
@@ -57,12 +77,17 @@ export async function PUT(req: Request, { params }: Props) {
             userId: request.userId,
             type: "TOPUP",
             amount,
-            description: `在线充值 ¥${amount.toFixed(2)}`
+            beforeBalance,
+            afterBalance,
+            description: `扫码充值审核通过 ¥${amount.toFixed(2)}`,
+            paymentRequestId: request.id,
+            referenceNo: request.referenceNo ?? undefined,
+            adminId: admin.id
           }
         })
       }
 
-      return updated
+      return tx.paymentRequest.findUniqueOrThrow({ where: { id } })
     })
 
     const amount = Number(result.amount)
@@ -80,7 +105,7 @@ export async function PUT(req: Request, { params }: Props) {
         userId: result.userId,
         type: "SYSTEM",
         title: "充值请求被拒绝",
-        message: `您的充值请求 ¥${amount.toFixed(2)} 已被拒绝。${note ? `原因：${note}` : ""}`,
+        message: `您的充值请求 ¥${amount.toFixed(2)} 已被拒绝。${reviewNote ? `原因：${reviewNote}` : ""}`,
         sendEmail: true
       }).catch((err) => console.error("[Payment Rejected Notification Error]", err))
     }
@@ -96,6 +121,9 @@ export async function PUT(req: Request, { params }: Props) {
       }
       if (error.message === "ALREADY_PROCESSED") {
         return NextResponse.json({ error: "该请求已处理" }, { status: 400 })
+      }
+      if (error.message === "MISSING_SCREENSHOT") {
+        return NextResponse.json({ error: "缺少支付截图，不能通过审核" }, { status: 400 })
       }
     }
     return NextResponse.json({ error: "处理充值请求失败" }, { status: 500 })

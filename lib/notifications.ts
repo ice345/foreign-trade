@@ -60,7 +60,7 @@ export async function notifyAdmins({
   sendEmail: shouldEmail = true
 }: Omit<CreateNotificationParams, "userId">) {
   const admins = await prisma.user.findMany({
-    where: { role: "ADMIN" },
+    where: { role: "ADMIN", status: "ACTIVE" },
     select: { id: true }
   })
 

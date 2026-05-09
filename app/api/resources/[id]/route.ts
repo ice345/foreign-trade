@@ -4,11 +4,12 @@ import { requireAdmin } from "@/lib/auth";
 import { updateResourceSchema } from "@/lib/validations/resource";
 import { serializeResource } from "@/lib/serializers";
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Props) {
   try {
-    const resource = await prisma.resource.findUnique({ where: { id: params.id } });
+    const { id } = await params;
+    const resource = await prisma.resource.findUnique({ where: { id } });
     if (!resource) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -22,6 +23,7 @@ export async function GET(_: Request, { params }: Props) {
 export async function PUT(request: Request, { params }: Props) {
   try {
     await requireAdmin();
+    const { id } = await params;
     const payload = await request.json();
     const parsed = updateResourceSchema.safeParse(payload);
 
@@ -34,7 +36,7 @@ export async function PUT(request: Request, { params }: Props) {
 
     const data = parsed.data;
     const resource = await prisma.resource.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(data.title !== undefined && { title: data.title }),
         ...(data.description !== undefined && { description: data.description }),
@@ -63,7 +65,8 @@ export async function PUT(request: Request, { params }: Props) {
 export async function DELETE(_: Request, { params }: Props) {
   try {
     await requireAdmin();
-    await prisma.resource.delete({ where: { id: params.id } });
+    const { id } = await params;
+    await prisma.resource.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {

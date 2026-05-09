@@ -2,12 +2,13 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireUser } from "@/lib/auth"
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser()
+    const { id } = await params
 
     const notification = await prisma.notification.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!notification || notification.userId !== user.id) {
@@ -15,7 +16,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     await prisma.notification.update({
-      where: { id: params.id },
+      where: { id },
       data: { read: true }
     })
 

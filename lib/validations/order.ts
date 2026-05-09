@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-const validStatuses = ["PENDING", "RUNNING", "POSTED", "CONFIRMED"] as const
+const validStatuses = ["PENDING", "RUNNING", "POSTED", "CONFIRMED", "CANCELLED", "REFUNDED"] as const
 
 export const updateOrderSchema = z.object({
   status: z.enum(validStatuses).optional(),

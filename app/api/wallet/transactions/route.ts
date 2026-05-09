@@ -25,7 +25,9 @@ export async function GET(req: Request) {
     return NextResponse.json({
       data: data.map((tx) => ({
         ...tx,
-        amount: Number(tx.amount)
+        amount: Number(tx.amount),
+        beforeBalance: tx.beforeBalance == null ? null : Number(tx.beforeBalance),
+        afterBalance: tx.afterBalance == null ? null : Number(tx.afterBalance)
       })),
       total,
       page,

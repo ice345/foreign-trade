@@ -20,7 +20,10 @@ export async function GET(request: Request) {
           email: true,
           phone: true,
           role: true,
+          status: true,
           nickname: true,
+          deletedAt: true,
+          deletedReason: true,
           createdAt: true,
           wallet: { select: { balance: true } }
         }

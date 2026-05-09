@@ -20,15 +20,19 @@ export async function GET() {
       topResources,
       topUsers
     ] = await Promise.all([
-      prisma.order.count(),
-      prisma.order.aggregate({ _sum: { amount: true } }),
+      prisma.order.count({ where: { status: { notIn: ["CANCELLED", "REFUNDED"] } } }),
+      prisma.order.aggregate({
+        where: { status: { notIn: ["CANCELLED", "REFUNDED"] } },
+        _sum: { amount: true }
+      }),
       prisma.order.count({ where: { status: "PENDING" } }),
       prisma.resource.count({ where: { status: "ACTIVE" } }),
-      prisma.user.count(),
+      prisma.user.count({ where: { status: "ACTIVE" } }),
       prisma.$queryRaw<{ date: string; count: number }[]>`
         SELECT DATE("createdAt")::text as date, COUNT(*)::int as count
         FROM "Order"
         WHERE "createdAt" >= ${thirtyDaysAgo}
+          AND "status" NOT IN ('CANCELLED', 'REFUNDED')
         GROUP BY DATE("createdAt")
         ORDER BY DATE("createdAt") ASC
       `,
@@ -36,6 +40,7 @@ export async function GET() {
         SELECT DATE("createdAt")::text as date, COALESCE(SUM("amount"), 0)::float as revenue
         FROM "Order"
         WHERE "createdAt" >= ${thirtyDaysAgo}
+          AND "status" NOT IN ('CANCELLED', 'REFUNDED')
         GROUP BY DATE("createdAt")
         ORDER BY DATE("createdAt") ASC
       `,
@@ -43,6 +48,7 @@ export async function GET() {
         SELECT r."id", r."title", COUNT(o."id")::int as count
         FROM "Resource" r
         JOIN "Order" o ON o."resourceId" = r."id"
+        WHERE o."status" NOT IN ('CANCELLED', 'REFUNDED')
         GROUP BY r."id", r."title"
         ORDER BY count DESC
         LIMIT 10
@@ -51,6 +57,7 @@ export async function GET() {
         SELECT u."id", u."email", u."phone", COALESCE(SUM(o."amount"), 0)::float as total
         FROM "User" u
         JOIN "Order" o ON o."userId" = u."id"
+        WHERE o."status" NOT IN ('CANCELLED', 'REFUNDED')
         GROUP BY u."id", u."email", u."phone"
         ORDER BY total DESC
         LIMIT 10

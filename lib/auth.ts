@@ -25,7 +25,7 @@ export async function createToken(payload: { userId: string; role: string }) {
 }
 
 export async function setSessionToken(token: string) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.set(tokenName, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -36,7 +36,7 @@ export async function setSessionToken(token: string) {
 }
 
 export async function clearSessionToken() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.set(tokenName, "", {
     httpOnly: true,
     sameSite: "lax",
@@ -47,7 +47,7 @@ export async function clearSessionToken() {
 }
 
 export async function getSession() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get(tokenName)?.value;
   if (!token) return null;
   try {
@@ -63,6 +63,7 @@ export async function requireUser() {
   if (!session?.userId) throw new Error("Unauthorized");
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) throw new Error("Unauthorized");
+  if (user.status !== "ACTIVE") throw new Error("Unauthorized");
   return user;
 }
 

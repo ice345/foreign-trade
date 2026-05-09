@@ -54,7 +54,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const limit = rateLimitByIp(req, "payment-request", 5, 60 * 1000)
+    const limit = await rateLimitByIp(req, "payment-request", 5, 60 * 1000)
     if (!limit.allowed) {
       return NextResponse.json(
         { error: "请求过于频繁，请稍后再试" },
@@ -73,6 +73,22 @@ export async function POST(req: Request) {
       )
     }
 
+    const qrCode = await prisma.paymentQrCode.findFirst({
+      where: {
+        id: parsed.data.qrCodeId,
+        type: parsed.data.paymentMethod,
+        active: true
+      },
+      select: { id: true }
+    })
+
+    if (!qrCode) {
+      return NextResponse.json(
+        { error: "收款二维码不可用，请刷新后重试" },
+        { status: 400 }
+      )
+    }
+
     const referenceNo = generateReferenceNo()
 
     const request = await prisma.paymentRequest.create({
@@ -80,9 +96,9 @@ export async function POST(req: Request) {
         userId: user.id,
         amount: parsed.data.amount,
         paymentMethod: parsed.data.paymentMethod,
-        qrCodeId: parsed.data.qrCodeId ?? null,
+        qrCodeId: parsed.data.qrCodeId,
         note: parsed.data.note ?? null,
-        screenshotUrl: parsed.data.screenshotUrl || null,
+        screenshotUrl: parsed.data.screenshotUrl,
         referenceNo,
         status: "PENDING"
       }

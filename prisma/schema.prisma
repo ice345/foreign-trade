@@ -12,6 +12,12 @@ enum Role {
   ADMIN
 }
 
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  DELETED
+}
+
 enum ResourceStatus {
   ACTIVE
   HIDDEN
@@ -23,6 +29,8 @@ enum OrderStatus {
   RUNNING
   POSTED
   CONFIRMED
+  CANCELLED
+  REFUNDED
 }
 
 enum TransactionType {
@@ -60,6 +68,7 @@ model User {
   phone           String?          @unique
   password        String
   role            Role             @default(USER)
+  status          UserStatus       @default(ACTIVE)
   nickname        String?
   avatar          String?
   favorites       Favorite[]
@@ -70,7 +79,11 @@ model User {
   reviews         Review[]
   cartItems       CartItem[]
   paymentRequests PaymentRequest[]
+  deletedAt       DateTime?        @db.Timestamptz(3)
+  deletedReason   String?
   createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([status])
 }
 
 model Resource {
@@ -153,6 +166,9 @@ model Order {
   postLink      String?
   screenshotUrl String?
   message       String?
+  cancelledAt   DateTime?      @db.Timestamptz(3)
+  cancelReason  String?
+  cancelledById String?
   createdAt     DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
   transactions  Transaction[]
@@ -181,14 +197,22 @@ model Transaction {
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   type        TransactionType
   amount      Decimal         @db.Decimal(12, 2)
+  beforeBalance Decimal?      @db.Decimal(12, 2)
+  afterBalance  Decimal?      @db.Decimal(12, 2)
   description String
   orderId     String?
   order       Order?          @relation(fields: [orderId], references: [id])
+  paymentRequestId String?
+  paymentRequest   PaymentRequest? @relation(fields: [paymentRequestId], references: [id])
+  referenceNo String?
+  adminId     String?
   createdAt   DateTime        @default(now()) @db.Timestamptz(3)
 
   @@index([walletId])
   @@index([userId])
   @@index([orderId])
+  @@index([paymentRequestId])
+  @@index([referenceNo])
 }
 
 model Notification {
@@ -260,11 +284,23 @@ model PaymentRequest {
   note          String?
   screenshotUrl String?
   referenceNo   String?              @unique
+  reviewedAt    DateTime?            @db.Timestamptz(3)
+  reviewedById  String?
+  reviewNote    String?
   createdAt     DateTime             @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime             @updatedAt @db.Timestamptz(3)
+  transactions  Transaction[]
 
   @@index([userId])
   @@index([status])
   @@index([qrCodeId])
   @@index([orderId])
+  @@index([reviewedById])
+}
+
+model RateLimitEntry {
+  key       String   @id
+  count     Int
+  resetAt   DateTime @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }

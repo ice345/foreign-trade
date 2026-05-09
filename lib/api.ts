@@ -150,9 +150,9 @@ export const api = {
   createPaymentRequest: (payload: {
     amount: number;
     paymentMethod: string;
-    qrCodeId?: string;
+    qrCodeId: string;
     note?: string;
-    screenshotUrl?: string;
+    screenshotUrl: string;
   }) =>
     fetcher<{ success: true; referenceNo: string }>("/api/payment-requests", {
       method: "POST",

@@ -6,7 +6,7 @@ import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
-    const limit = rateLimitByIp(request, "send-code", 1, 60 * 1000)
+    const limit = await rateLimitByIp(request, "send-code", 1, 60 * 1000)
     if (!limit.allowed) {
       return NextResponse.json(
         { success: false, error: "请等待 60 秒后再试" },

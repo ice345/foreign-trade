@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth"
 import { createReviewSchema } from "@/lib/validations/review"
 import { parsePagination } from "@/lib/pagination"
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@")
@@ -19,12 +19,13 @@ function maskPhone(phone: string): string {
 }
 
 export async function GET(req: Request, { params }: Props) {
+  const { id } = await params
   const { searchParams } = new URL(req.url)
   const { page, pageSize, skip, take } = parsePagination(searchParams, { pageSize: 10 })
 
   const [reviews, total, avgResult] = await Promise.all([
     prisma.review.findMany({
-      where: { resourceId: params.id },
+      where: { resourceId: id },
       orderBy: { createdAt: "desc" },
       skip,
       take,
@@ -32,9 +33,9 @@ export async function GET(req: Request, { params }: Props) {
         user: { select: { email: true, phone: true, nickname: true } }
       }
     }),
-    prisma.review.count({ where: { resourceId: params.id } }),
+    prisma.review.count({ where: { resourceId: id } }),
     prisma.review.aggregate({
-      where: { resourceId: params.id },
+      where: { resourceId: id },
       _avg: { rating: true }
     })
   ])
@@ -58,6 +59,7 @@ export async function GET(req: Request, { params }: Props) {
 export async function POST(req: Request, { params }: Props) {
   try {
     const user = await requireUser()
+    const { id } = await params
     const body = await req.json()
     const parsed = createReviewSchema.safeParse(body)
 
@@ -83,7 +85,7 @@ export async function POST(req: Request, { params }: Props) {
       return NextResponse.json({ error: "无权评价" }, { status: 403 })
     }
 
-    if (order.resourceId !== params.id) {
+    if (order.resourceId !== id) {
       return NextResponse.json({ error: "订单与资源不匹配" }, { status: 400 })
     }
 
@@ -102,7 +104,7 @@ export async function POST(req: Request, { params }: Props) {
     const review = await prisma.review.create({
       data: {
         userId: user.id,
-        resourceId: params.id,
+        resourceId: id,
         orderId,
         rating,
         comment: comment ?? null

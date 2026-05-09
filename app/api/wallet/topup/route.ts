@@ -6,7 +6,7 @@ import { createNotification } from "@/lib/notifications"
 
 export async function POST(req: Request) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
     const body = await req.json()
     const parsed = topUpSchema.safeParse(body)
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     const { userId, amount, description } = parsed.data
-    const wallet = await topUpBalance(userId, amount, description)
+    const wallet = await topUpBalance(userId, amount, description, { adminId: admin.id })
 
     await createNotification({
       userId,

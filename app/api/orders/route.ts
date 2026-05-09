@@ -94,17 +94,26 @@ export async function POST(req: Request) {
 
     const resource = await prisma.resource.findUnique({
       where: { id: resourceId },
-      select: { id: true, title: true, price: true }
+      select: { id: true, title: true, price: true, status: true }
     });
 
     if (!resource) {
       return NextResponse.json({ error: "资源不存在" }, { status: 404 });
     }
 
+    if (resource.status !== "ACTIVE") {
+      return NextResponse.json({ error: "该资源暂不可下单" }, { status: 400 });
+    }
+
     const basePrice = resource.price ? Number(resource.price) : 0;
     const orderAmount = basePrice + SERVICE_FEE;
 
     const order = await prisma.$transaction(async (tx) => {
+      const walletBeforeDeduction = orderAmount > 0
+        ? await tx.wallet.findUnique({ where: { userId: user.id } })
+        : null;
+      const beforeBalance = walletBeforeDeduction ? Number(walletBeforeDeduction.balance) : 0;
+
       const newOrder = await tx.order.create({
         data: {
           userId: user.id,
@@ -134,6 +143,7 @@ export async function POST(req: Request) {
         }
 
         const wallet = await tx.wallet.findUnique({ where: { userId: user.id } });
+        const afterBalance = wallet ? Number(wallet.balance) : 0;
 
         await tx.transaction.create({
           data: {
@@ -141,6 +151,8 @@ export async function POST(req: Request) {
             userId: user.id,
             type: "DEDUCTION",
             amount: -orderAmount,
+            beforeBalance,
+            afterBalance,
             description: `订单扣款 #${newOrder.id.slice(0, 8)}`,
             orderId: newOrder.id
           }

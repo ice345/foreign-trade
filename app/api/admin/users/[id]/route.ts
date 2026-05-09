@@ -7,14 +7,15 @@ import { sendSMS } from "@/lib/sms"
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const admin = await requireAdmin()
+    const { id } = await params
 
     const body = await request.json()
     const parsed = deleteUserSchema.safeParse({
-      userId: params.id,
+      userId: id,
       reason: body.reason
     })
 
@@ -52,7 +53,14 @@ export async function DELETE(
       )
     }
 
-    await prisma.user.delete({ where: { id: userId } })
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        status: "DELETED",
+        deletedAt: new Date(),
+        deletedReason: reason
+      }
+    })
 
     if (targetUser.email) {
       sendEmail({

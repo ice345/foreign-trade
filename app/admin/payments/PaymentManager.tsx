@@ -26,6 +26,9 @@ type PaymentReq = {
   note?: string | null
   screenshotUrl?: string | null
   referenceNo?: string | null
+  reviewedAt?: string | null
+  reviewedById?: string | null
+  reviewNote?: string | null
   createdAt: string
   user: { id: string; email?: string | null; phone?: string | null; nickname?: string | null }
 }
@@ -105,11 +108,21 @@ export default function PaymentManager() {
   }
 
   const handleApprove = async (id: string, status: "APPROVED" | "REJECTED") => {
+    const reviewNote =
+      status === "REJECTED"
+        ? window.prompt("请输入拒绝原因")
+        : window.prompt("审核备注（可选）") ?? undefined
+
+    if (status === "REJECTED" && !reviewNote?.trim()) {
+      toast.error("拒绝时必须填写原因")
+      return
+    }
+
     setProcessing(id)
     try {
       await fetcher(`/api/admin/payment-requests/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, reviewNote: reviewNote?.trim() || undefined })
       })
       toast.success(status === "APPROVED" ? "已通过" : "已拒绝")
       queryClient.invalidateQueries({ queryKey: ["admin-payment-requests"] })
@@ -242,6 +255,7 @@ export default function PaymentManager() {
                   <th className="px-6 py-4">金额</th>
                   <th className="px-6 py-4">方式</th>
                   <th className="px-6 py-4">凭证</th>
+                  <th className="px-6 py-4">备注</th>
                   <th className="px-6 py-4">状态</th>
                   <th className="px-6 py-4">时间</th>
                   <th className="px-6 py-4 text-right">操作</th>
@@ -280,6 +294,16 @@ export default function PaymentManager() {
                         <span className="text-xs text-white/20">无</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 text-xs text-white/50">
+                      <div className="max-w-[180px] truncate" title={r.note ?? ""}>
+                        {r.note || "-"}
+                      </div>
+                      {r.reviewNote && (
+                        <div className="mt-1 max-w-[180px] truncate text-white/30" title={r.reviewNote}>
+                          审核：{r.reviewNote}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={statusColor[r.status]}>{statusLabel[r.status]}</span>
                     </td>
@@ -314,7 +338,7 @@ export default function PaymentManager() {
                 ))}
                 {!requests.length && (
                   <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-white/40">
+                    <td colSpan={9} className="px-6 py-10 text-center text-white/40">
                       暂无充值请求
                     </td>
                   </tr>

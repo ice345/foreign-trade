@@ -9,11 +9,12 @@ export async function GET() {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      status: user.status,
       nickname: user.nickname,
       avatar: user.avatar
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") {
+    if (error instanceof Error && (error.message === "Unauthorized" || error.message === "AccountDisabled")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("[Me Error]", error);

@@ -53,6 +53,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "resourceId is required" }, { status: 400 });
     }
 
+    const resource = await prisma.resource.findUnique({
+      where: { id: resourceId },
+      select: { status: true }
+    });
+
+    if (!resource) {
+      return NextResponse.json({ error: "资源不存在" }, { status: 404 });
+    }
+
+    if (resource.status !== "ACTIVE") {
+      return NextResponse.json({ error: "该资源暂不可加入购物车" }, { status: 400 });
+    }
+
     await prisma.cartItem.upsert({
       where: { userId_resourceId: { userId: user.id, resourceId } },
       create: { userId: user.id, resourceId },

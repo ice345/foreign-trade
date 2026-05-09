@@ -11,18 +11,30 @@ export async function getOrCreateWallet(userId: string) {
 export async function topUpBalance(
   userId: string,
   amount: number,
-  description: string
+  description: string,
+  options?: {
+    adminId?: string
+    paymentRequestId?: string
+    referenceNo?: string | null
+  }
 ) {
   if (amount <= 0) {
     throw new Error("充值金额必须大于 0")
   }
 
   return prisma.$transaction(async (tx) => {
-    const wallet = await tx.wallet.upsert({
-      where: { userId },
-      update: { balance: { increment: amount } },
-      create: { userId, balance: amount }
-    })
+    const existing = await tx.wallet.findUnique({ where: { userId } })
+    const beforeBalance = existing ? Number(existing.balance) : 0
+    const afterBalance = beforeBalance + amount
+
+    const wallet = existing
+      ? await tx.wallet.update({
+          where: { userId },
+          data: { balance: { increment: amount } }
+        })
+      : await tx.wallet.create({
+          data: { userId, balance: amount }
+        })
 
     await tx.transaction.create({
       data: {
@@ -30,7 +42,12 @@ export async function topUpBalance(
         userId,
         type: "TOPUP",
         amount,
-        description
+        beforeBalance,
+        afterBalance,
+        description,
+        paymentRequestId: options?.paymentRequestId,
+        referenceNo: options?.referenceNo ?? undefined,
+        adminId: options?.adminId
       }
     })
 
@@ -49,6 +66,9 @@ export async function deductBalance(
   }
 
   return prisma.$transaction(async (tx) => {
+    const currentWallet = await tx.wallet.findUnique({ where: { userId } })
+    const beforeBalance = currentWallet ? Number(currentWallet.balance) : 0
+
     const result = await tx.wallet.updateMany({
       where: {
         userId,
@@ -62,6 +82,7 @@ export async function deductBalance(
     }
 
     const wallet = await tx.wallet.findUniqueOrThrow({ where: { userId } })
+    const afterBalance = Number(wallet.balance)
 
     await tx.transaction.create({
       data: {
@@ -69,6 +90,8 @@ export async function deductBalance(
         userId,
         type: "DEDUCTION",
         amount: -amount,
+        beforeBalance,
+        afterBalance,
         description,
         orderId
       }

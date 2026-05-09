@@ -32,7 +32,7 @@ export type ResourceDetail = ResourceSummary & {
 
 export type OrderItem = {
   id: string;
-  status: string;
+  status: "PENDING" | "RUNNING" | "POSTED" | "CONFIRMED" | "CANCELLED" | "REFUNDED";
   amount?: number | null;
   productLink?: string | null;
   discountCode?: string | null;
@@ -58,6 +58,7 @@ export type UserProfile = {
   email?: string | null;
   phone?: string | null;
   role: "USER" | "ADMIN";
+  status?: "ACTIVE" | "DISABLED" | "DELETED";
   nickname?: string | null;
   avatar?: string | null;
 };
@@ -71,8 +72,12 @@ export type TransactionItem = {
   id: string;
   type: "TOPUP" | "DEDUCTION" | "REFUND";
   amount: number;
+  beforeBalance?: number | null;
+  afterBalance?: number | null;
   description: string;
   orderId?: string | null;
+  paymentRequestId?: string | null;
+  referenceNo?: string | null;
   createdAt: string;
   order?: {
     id: string;
@@ -119,6 +124,9 @@ export type PaymentRequestItem = {
   note?: string | null;
   screenshotUrl?: string | null;
   referenceNo?: string | null;
+  reviewedAt?: string | null;
+  reviewedById?: string | null;
+  reviewNote?: string | null;
   createdAt: string;
   updatedAt: string;
 };

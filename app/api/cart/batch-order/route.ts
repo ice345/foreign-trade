@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { SERVICE_FEE } from "@/lib/constants";
-import { toNumberOrNull } from "@/lib/decimal";
 
 type BatchItem = {
   resourceId: string;
@@ -25,10 +24,28 @@ export async function POST(req: Request) {
     }
 
     const resourceIds = items.map((i) => i.resourceId);
+    const uniqueResourceIds = Array.from(new Set(resourceIds));
+    if (uniqueResourceIds.length !== resourceIds.length) {
+      return NextResponse.json({ error: "不能重复提交同一资源" }, { status: 400 });
+    }
+
     const resources = await prisma.resource.findMany({
-      where: { id: { in: resourceIds } },
-      select: { id: true, title: true, price: true }
+      where: { id: { in: uniqueResourceIds } },
+      select: { id: true, title: true, price: true, status: true }
     });
+
+    if (resources.length !== uniqueResourceIds.length) {
+      return NextResponse.json({ error: "部分资源不存在" }, { status: 404 });
+    }
+
+    const unavailableResource = resources.find((resource) => resource.status !== "ACTIVE");
+    if (unavailableResource) {
+      return NextResponse.json(
+        { error: `资源「${unavailableResource.title}」暂不可下单` },
+        { status: 400 }
+      );
+    }
+
     const resourceMap = new Map(resources.map((r) => [r.id, r]));
 
     let totalAmount = 0;
@@ -40,6 +57,11 @@ export async function POST(req: Request) {
     }
 
     const createdOrders = await prisma.$transaction(async (tx) => {
+      const walletBeforeDeduction = totalAmount > 0
+        ? await tx.wallet.findUnique({ where: { userId: user.id } })
+        : null;
+      let runningBalance = walletBeforeDeduction ? Number(walletBeforeDeduction.balance) : 0;
+
       if (totalAmount > 0) {
         const result = await tx.wallet.updateMany({
           where: {
@@ -80,12 +102,17 @@ export async function POST(req: Request) {
         });
 
         if (amount > 0 && wallet) {
+          const beforeBalance = runningBalance;
+          runningBalance -= amount;
+
           await tx.transaction.create({
             data: {
               walletId: wallet.id,
               userId: user.id,
               type: "DEDUCTION",
               amount: -amount,
+              beforeBalance,
+              afterBalance: runningBalance,
               description: `订单扣款 #${newOrder.id.slice(0, 8)}`,
               orderId: newOrder.id
             }
@@ -96,7 +123,7 @@ export async function POST(req: Request) {
       }
 
       await tx.cartItem.deleteMany({
-        where: { userId: user.id, resourceId: { in: resourceIds } }
+        where: { userId: user.id, resourceId: { in: uniqueResourceIds } }
       });
 
       return orders;

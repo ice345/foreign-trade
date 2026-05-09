@@ -30,6 +30,7 @@ export default function TopupClient() {
   const [selectedQr, setSelectedQr] = useState<QrCode | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [screenshotUrl, setScreenshotUrl] = useState("")
+  const [note, setNote] = useState("")
   const [referenceNo, setReferenceNo] = useState("")
   const [showQrModal, setShowQrModal] = useState(false)
 
@@ -54,14 +55,22 @@ export default function TopupClient() {
   }
 
   const handleSubmit = async () => {
+    if (!selectedQr) {
+      toast.error("请选择收款二维码")
+      return
+    }
+    if (!screenshotUrl) {
+      toast.error("请上传支付截图")
+      return
+    }
     setSubmitting(true)
     try {
       const result = await api.createPaymentRequest({
         amount: Number(amount),
         paymentMethod: method,
-        qrCodeId: selectedQr?.id,
-        note: undefined,
-        screenshotUrl: screenshotUrl || undefined
+        qrCodeId: selectedQr.id,
+        note: note || undefined,
+        screenshotUrl
       })
       toast.success("充值请求已提交，请等待管理员审核")
       setReferenceNo(result.referenceNo)
@@ -122,7 +131,13 @@ export default function TopupClient() {
             <label className="mb-1.5 block text-xs font-medium text-white/60">支付方式</label>
             <div className="flex gap-3">
               <button
-                onClick={() => setMethod("WECHAT")}
+                onClick={() => {
+                  setMethod("WECHAT")
+                  if (method !== "WECHAT") {
+                    setSelectedQr(null)
+                    setScreenshotUrl("")
+                  }
+                }}
                 className={`flex-1 rounded-xl border px-4 py-3 text-sm transition ${
                   method === "WECHAT"
                     ? "border-green-500 bg-green-500/10 text-green-400"
@@ -132,7 +147,13 @@ export default function TopupClient() {
                 微信支付
               </button>
               <button
-                onClick={() => setMethod("ALIPAY")}
+                onClick={() => {
+                  setMethod("ALIPAY")
+                  if (method !== "ALIPAY") {
+                    setSelectedQr(null)
+                    setScreenshotUrl("")
+                  }
+                }}
                 className={`flex-1 rounded-xl border px-4 py-3 text-sm transition ${
                   method === "ALIPAY"
                     ? "border-blue-500 bg-blue-500/10 text-blue-400"
@@ -212,12 +233,23 @@ export default function TopupClient() {
           )}
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-white/60">上传支付截图（可选）</label>
+            <label className="mb-1.5 block text-xs font-medium text-white/60">上传支付截图</label>
             <UploadButton
               folder="payment-screenshots"
               onUploaded={(url) => setScreenshotUrl(url)}
               currentUrl={screenshotUrl || undefined}
               label="上传支付截图"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-white/60">付款备注 / 转账单号</label>
+            <input
+              className="input w-full"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={500}
+              placeholder="填写微信/支付宝账单号或转账备注，便于人工核对"
             />
           </div>
 
@@ -228,7 +260,7 @@ export default function TopupClient() {
           <button
             className="btn-primary w-full"
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || !selectedQr || !screenshotUrl}
           >
             {submitting ? (
               <span className="flex items-center gap-2">
@@ -268,6 +300,7 @@ export default function TopupClient() {
                 setAmount("")
                 setSelectedQr(null)
                 setScreenshotUrl("")
+                setNote("")
                 setReferenceNo("")
               }}
             >

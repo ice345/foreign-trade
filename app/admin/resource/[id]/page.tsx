@@ -3,11 +3,12 @@ import AdminResourceEditor from "./AdminResourceEditor";
 import { notFound } from "next/navigation";
 import { toNumberOrNull } from "@/lib/decimal";
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 export default async function AdminResourcePage({ params }: Props) {
+  const { id } = await params;
   const resource = await prisma.resource.findUnique({
-    where: { id: params.id }
+    where: { id }
   });
 
   if (!resource) return notFound();

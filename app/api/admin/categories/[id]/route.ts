@@ -3,11 +3,12 @@ import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { categorySchema } from "@/lib/validations/category"
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 export async function PUT(req: Request, { params }: Props) {
   try {
     await requireAdmin()
+    const { id } = await params
     const body = await req.json()
     const parsed = categorySchema.safeParse(body)
 
@@ -16,7 +17,7 @@ export async function PUT(req: Request, { params }: Props) {
     }
 
     const category = await prisma.category.update({
-      where: { id: params.id },
+      where: { id },
       data: parsed.data
     })
     return NextResponse.json(category)
@@ -31,7 +32,8 @@ export async function PUT(req: Request, { params }: Props) {
 export async function DELETE(_req: Request, { params }: Props) {
   try {
     await requireAdmin()
-    await prisma.category.delete({ where: { id: params.id } })
+    const { id } = await params
+    await prisma.category.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {

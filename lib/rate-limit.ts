@@ -45,13 +45,49 @@ export function rateLimit(
   return { allowed: true, retryAfterMs: 0 }
 }
 
-export function rateLimitByIp(
+export async function rateLimitByIp(
   request: Request,
   prefix: string,
   maxRequests: number,
   windowMs: number
-): { allowed: boolean; retryAfterMs: number } {
+): Promise<{ allowed: boolean; retryAfterMs: number }> {
   const forwarded = request.headers.get("x-forwarded-for")
   const ip = forwarded?.split(",")[0]?.trim() ?? "unknown"
-  return rateLimit(`${prefix}:${ip}`, maxRequests, windowMs)
+  const key = `${prefix}:${ip}`
+
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    const now = new Date()
+    const resetAt = new Date(Date.now() + windowMs)
+
+    return await prisma.$transaction(async (tx) => {
+      const entry = await tx.rateLimitEntry.findUnique({ where: { key } })
+
+      if (!entry || entry.resetAt <= now) {
+        await tx.rateLimitEntry.upsert({
+          where: { key },
+          update: { count: 1, resetAt },
+          create: { key, count: 1, resetAt }
+        })
+        return { allowed: true, retryAfterMs: 0 }
+      }
+
+      if (entry.count >= maxRequests) {
+        return {
+          allowed: false,
+          retryAfterMs: entry.resetAt.getTime() - now.getTime()
+        }
+      }
+
+      await tx.rateLimitEntry.update({
+        where: { key },
+        data: { count: { increment: 1 } }
+      })
+
+      return { allowed: true, retryAfterMs: 0 }
+    })
+  } catch (error) {
+    console.error("[RateLimit Persistent Error]", error)
+    return rateLimit(key, maxRequests, windowMs)
+  }
 }

@@ -6,7 +6,7 @@ import { rateLimitByIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
-    const limit = rateLimitByIp(request, "login", 10, 15 * 60 * 1000);
+    const limit = await rateLimitByIp(request, "login", 10, 15 * 60 * 1000);
     if (!limit.allowed) {
       return NextResponse.json(
         { error: "请求过于频繁，请稍后再试" },
@@ -40,6 +40,10 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "账号或密码错误" }, { status: 401 });
+    }
+
+    if (user.status !== "ACTIVE") {
+      return NextResponse.json({ error: "账号已停用，请联系客服" }, { status: 403 });
     }
 
     const valid = await verifyPassword(password, user.password);

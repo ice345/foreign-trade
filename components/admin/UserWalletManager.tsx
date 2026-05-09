@@ -12,9 +12,17 @@ type UserRow = {
   email?: string | null
   phone?: string | null
   role: string
+  status: "ACTIVE" | "DISABLED" | "DELETED"
   nickname?: string | null
   balance: number
+  deletedReason?: string | null
   createdAt: string
+}
+
+const userStatusLabel: Record<UserRow["status"], string> = {
+  ACTIVE: "正常",
+  DISABLED: "停用",
+  DELETED: "已删除"
 }
 
 export default function UserWalletManager() {
@@ -118,6 +126,11 @@ export default function UserWalletManager() {
                   <span className={`rounded-full px-2 py-0.5 text-xs ${user.role === "ADMIN" ? "bg-accent/20 text-accent" : "bg-white/10 text-white/60"}`}>
                     {user.role}
                   </span>
+                  <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                    user.status === "ACTIVE" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                  }`}>
+                    {userStatusLabel[user.status]}
+                  </span>
                 </td>
                 <td className="px-6 py-4 font-medium">¥{user.balance.toFixed(2)}</td>
                 <td className="px-6 py-4 text-xs text-white/40">
@@ -128,17 +141,18 @@ export default function UserWalletManager() {
                     <button
                       className="btn-outline text-xs"
                       onClick={() => setTopUpTarget(user)}
+                      disabled={user.status !== "ACTIVE"}
                     >
                       <DollarSign className="mr-1 h-3 w-3" />
                       充值
                     </button>
-                    {user.role !== "ADMIN" && (
+                    {user.role !== "ADMIN" && user.status === "ACTIVE" && (
                       <button
                         className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/10"
                         onClick={() => setDeleteTarget(user)}
                       >
                         <Trash2 className="mr-1 inline h-3 w-3" />
-                        删除
+                        软删除
                       </button>
                     )}
                   </div>
@@ -246,7 +260,7 @@ export default function UserWalletManager() {
               确定要删除用户 <strong className="text-white">{deleteTarget.email ?? deleteTarget.phone}</strong> 吗？
             </p>
             <p className="mb-4 text-xs text-red-400/80">
-              此操作不可撤销，用户的所有数据将被永久删除。
+              账号将被停用并从用户侧失效，历史订单与资金流水会保留。
             </p>
             <div className="space-y-4">
               <div>

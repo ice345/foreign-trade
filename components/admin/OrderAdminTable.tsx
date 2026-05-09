@@ -8,7 +8,15 @@ import { toast } from "sonner";
 import UploadButton from "@/components/UploadButton";
 import { Trash2, AlertTriangle } from "lucide-react";
 
-const statusOptions = ["PENDING", "RUNNING", "POSTED", "CONFIRMED"];
+const statusOptions = ["PENDING", "RUNNING", "POSTED", "CONFIRMED", "CANCELLED", "REFUNDED"] as const;
+const statusLabel: Record<(typeof statusOptions)[number], string> = {
+  PENDING: "待处理",
+  RUNNING: "执行中",
+  POSTED: "已发布",
+  CONFIRMED: "已确认",
+  CANCELLED: "已取消",
+  REFUNDED: "已退款"
+};
 
 export default function OrderAdminTable() {
   const [page, setPage] = useState(1);
@@ -22,6 +30,7 @@ export default function OrderAdminTable() {
 
   const [saving, setSaving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<OrderItem | null>(null);
+  const [cancelReason, setCancelReason] = useState("管理员取消订单");
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleUpdate = async (order: OrderItem, payload: Partial<OrderItem>) => {
@@ -45,9 +54,13 @@ export default function OrderAdminTable() {
     if (!deleting) return;
     setDeleteLoading(true);
     try {
-      const res = await fetch(`/api/orders/${deleting.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/orders/${deleting.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: cancelReason })
+      });
       if (res.ok) {
-        toast.success("订单已删除");
+        toast.success("订单已取消");
         refetch();
       } else {
         const data = await res.json();
@@ -58,6 +71,7 @@ export default function OrderAdminTable() {
     } finally {
       setDeleteLoading(false);
       setDeleting(null);
+      setCancelReason("管理员取消订单");
     }
   };
 
@@ -91,11 +105,13 @@ export default function OrderAdminTable() {
                   <select
                     className="input h-9 w-full max-w-[140px]"
                     value={order.status}
-                    onChange={(event) => handleUpdate(order, { status: event.target.value })}
+                    onChange={(event) =>
+                      handleUpdate(order, { status: event.target.value as OrderItem["status"] })
+                    }
                   >
                     {statusOptions.map((status) => (
                       <option key={status} value={status} className="bg-panel">
-                        {status}
+                        {statusLabel[status]}
                       </option>
                     ))}
                   </select>
@@ -126,7 +142,8 @@ export default function OrderAdminTable() {
                     <button
                       onClick={() => setDeleting(order)}
                       className="rounded p-1.5 text-white/40 transition hover:bg-red-500/10 hover:text-red-400"
-                      title="删除订单"
+                      title="取消订单"
+                      disabled={order.status === "CONFIRMED" || order.status === "CANCELLED" || order.status === "REFUNDED"}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -180,8 +197,8 @@ export default function OrderAdminTable() {
                 <AlertTriangle className="h-5 w-5 text-red-400" />
               </div>
               <div>
-                <h3 className="font-semibold">确认删除订单</h3>
-                <p className="text-xs text-white/50">此操作不可撤销</p>
+                <h3 className="font-semibold">确认取消订单</h3>
+                <p className="text-xs text-white/50">订单会保留记录，未确认订单会自动退款</p>
               </div>
             </div>
             <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
@@ -190,9 +207,19 @@ export default function OrderAdminTable() {
               <div>金额：¥{deleting.amount?.toFixed(2) ?? "0.00"}</div>
               {deleting.amount && deleting.amount > 0 && deleting.status !== "CONFIRMED" && (
                 <div className="mt-2 text-xs text-amber-300">
-                  订单有扣款且未确认，删除后将自动退款 ¥{deleting.amount.toFixed(2)}
+                  订单有扣款且未确认，取消后将自动退款 ¥{deleting.amount.toFixed(2)}
                 </div>
               )}
+            </div>
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-medium text-white/60">取消原因</label>
+              <textarea
+                className="input w-full resize-none"
+                rows={3}
+                value={cancelReason}
+                maxLength={500}
+                onChange={(event) => setCancelReason(event.target.value)}
+              />
             </div>
             <div className="flex gap-3">
               <button
@@ -207,7 +234,7 @@ export default function OrderAdminTable() {
                 disabled={deleteLoading}
                 className="flex-1 rounded-xl bg-red-500/20 px-4 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/30"
               >
-                {deleteLoading ? "删除中..." : "确认删除"}
+                {deleteLoading ? "取消中..." : "确认取消"}
               </button>
             </div>
           </div>

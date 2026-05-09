@@ -11,7 +11,9 @@ const statusLabels: Record<string, string> = {
   PENDING: "待审核",
   RUNNING: "执行中",
   POSTED: "已发帖",
-  CONFIRMED: "待确认"
+  CONFIRMED: "已确认",
+  CANCELLED: "已取消",
+  REFUNDED: "已退款"
 };
 
 export default function OrderTracking() {
@@ -29,6 +31,7 @@ export default function OrderTracking() {
       {data.map((order) => {
         const rawIndex = steps.indexOf(order.status);
         const currentIndex = rawIndex === -1 ? 0 : rawIndex;
+        const isClosed = order.status === "CANCELLED" || order.status === "REFUNDED";
         return (
           <div key={order.id} className="card space-y-4">
             <div className="flex items-center justify-between">
@@ -36,10 +39,17 @@ export default function OrderTracking() {
                 <h3 className="text-lg font-semibold">{order.resource?.title ?? "已删除资源"}</h3>
                 <p className="text-xs text-white/50">订单号：{order.id.slice(0, 8)}</p>
               </div>
-              <div className="text-sm text-white/60">金额 ¥{order.amount?.toFixed(2) ?? "0.00"}</div>
+              <div className="text-right text-sm text-white/60">
+                <div>金额 ¥{order.amount?.toFixed(2) ?? "0.00"}</div>
+                {isClosed && (
+                  <div className={order.status === "REFUNDED" ? "text-green-400" : "text-white/40"}>
+                    {statusLabels[order.status]}
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-white/50">
+            <div className={`flex items-center gap-2 text-xs text-white/50 ${isClosed ? "opacity-50" : ""}`}>
               {steps.map((step, index) => {
                 const isActive = index <= currentIndex;
                 return (
