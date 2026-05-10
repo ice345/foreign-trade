@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { jwtSecret } from "@/lib/jwt-secret";
+import { getJwtSecret } from "@/lib/jwt-secret";
 
 const tokenName = "globalpush_token";
 const MAX_AGE = 7 * 24 * 60 * 60;
@@ -21,7 +21,7 @@ export async function createToken(payload: { userId: string; role: string }) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(jwtSecret);
+    .sign(getJwtSecret());
 }
 
 export async function setSessionToken(token: string) {
@@ -51,7 +51,7 @@ export async function getSession() {
   const token = cookieStore.get(tokenName)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, jwtSecret);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as { userId: string; role: string };
   } catch {
     return null;

@@ -37,7 +37,10 @@ export async function POST(request: Request) {
         ? { email: normalizedTarget }
         : { phone: normalizedTarget }
 
-    const existing = await prisma.user.findFirst({ where: whereClause })
+    const existing = await prisma.user.findFirst({
+      where: whereClause,
+      select: { id: true }
+    })
     if (existing) {
       return NextResponse.json(
         { success: false, error: "该账号已注册" },

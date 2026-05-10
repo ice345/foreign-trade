@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { jwtSecret } from "@/lib/jwt-secret";
+import { getJwtSecret } from "@/lib/jwt-secret";
 
 export async function proxy(request: NextRequest) {
   if (!request.nextUrl.pathname.startsWith("/admin")) {
@@ -14,7 +14,7 @@ export async function proxy(request: NextRequest) {
   }
 
   try {
-    const { payload } = await jwtVerify(token, jwtSecret);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     if (payload.role !== "ADMIN") {
       return NextResponse.redirect(new URL("/", request.url));
     }

@@ -42,7 +42,10 @@ export async function POST(request: Request) {
         ? { email: normalizedTarget }
         : { phone: normalizedTarget }
 
-    const existing = await prisma.user.findFirst({ where: whereClause })
+    const existing = await prisma.user.findFirst({
+      where: whereClause,
+      select: { id: true }
+    })
     if (existing) {
       return NextResponse.json(
         { success: false, error: "该账号已注册" },
@@ -57,6 +60,11 @@ export async function POST(request: Request) {
         phone: type === "PHONE" ? normalizedTarget : null,
         password: hashed,
         role: "USER"
+      },
+      select: {
+        id: true,
+        email: true,
+        phone: true
       }
     })
 
@@ -66,6 +74,13 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error("[Register Error]", error);
+    const message = error instanceof Error ? error.message : ""
+    if (message.includes("does not exist") || message.includes("Unknown argument")) {
+      return NextResponse.json(
+        { success: false, error: "数据库结构未更新，请先在 Vercel/Neon 执行 Prisma 迁移" },
+        { status: 503 }
+      )
+    }
     return NextResponse.json(
       { success: false, error: "注册失败" },
       { status: 500 }
