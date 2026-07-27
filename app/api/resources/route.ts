@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { Prisma, ResourceStatus } from "@prisma/client";
 import { createResourceSchema } from "@/lib/validations/resource";
 import { parsePagination } from "@/lib/pagination";
 import { serializeResource, serializeResourceSummary } from "@/lib/serializers";
 import { isInternalFileUrl } from "@/lib/security";
 import { fileIdFromUrl, validateFileReference } from "@/lib/storage";
 import { parseOptionalLeadTime, parseOptionalMaxPrice } from "@/lib/resource-filters";
+import { buildResourceWhere } from "@/lib/resource-query";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -39,29 +39,17 @@ export async function GET(request: Request) {
     }
   }
 
-  const where: Prisma.ResourceWhereInput = {
-    AND: [
-      q ? { OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { description: { contains: q, mode: "insensitive" } },
-        { category: { contains: q, mode: "insensitive" } },
-        { country: { contains: q, mode: "insensitive" } },
-        { platform: { contains: q, mode: "insensitive" } },
-        { tags: { has: q } }
-      ] } : {},
-      category ? { category } : {},
-      platform ? { platform } : {},
-      country ? { country } : {},
-      goal ? { OR: [
-        { category: { contains: goal, mode: "insensitive" } },
-        { description: { contains: goal, mode: "insensitive" } },
-        { tags: { has: goal } }
-      ] } : {},
-      maxPrice !== null ? { OR: [{ price: null }, { price: { lte: maxPrice } }] } : {},
-      leadTime !== null ? { OR: [{ leadTimeDays: null }, { leadTimeDays: { lte: leadTime } }] } : {},
-      status ? { status: status as ResourceStatus } : mode === "public" ? { status: ResourceStatus.ACTIVE } : {}
-    ]
-  };
+  const where = buildResourceWhere({
+    q,
+    category,
+    platform,
+    country,
+    goal,
+    maxPrice,
+    leadTime,
+    mode,
+    status
+  });
 
   const [data, total] = await Promise.all([
     prisma.resource.findMany({

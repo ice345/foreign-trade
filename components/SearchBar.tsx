@@ -1,19 +1,20 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Search } from "lucide-react";
 
 export default function SearchBar() {
   const router = useRouter();
   const params = useSearchParams();
   const [query, setQuery] = useState(params.get("q") ?? "");
+  const [isPending, startTransition] = useTransition();
 
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        router.push(`/search?q=${encodeURIComponent(query)}`);
+        startTransition(() => router.push(`/search?q=${encodeURIComponent(query.trim())}`));
       }}
       className="glass-surface flex w-full max-w-2xl gap-2 rounded-xl p-2"
     >
@@ -30,8 +31,8 @@ export default function SearchBar() {
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
-      <button className="btn-primary h-12 shrink-0 px-3 sm:px-5" type="submit">
-        搜索
+      <button className="btn-primary h-12 shrink-0 px-3 disabled:cursor-wait disabled:opacity-60 sm:px-5" type="submit" disabled={isPending}>
+        {isPending ? "搜索中" : "搜索"}
       </button>
     </form>
   );
