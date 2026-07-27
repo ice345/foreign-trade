@@ -7,7 +7,7 @@ type Props = { params: Promise<{ id: string }> }
 
 export async function PUT(req: Request, { params }: Props) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
     const { id } = await params
     const body = await req.json()
     const parsed = tagSchema.safeParse(body)
@@ -16,9 +16,11 @@ export async function PUT(req: Request, { params }: Props) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
     }
 
-    const tag = await prisma.tag.update({
-      where: { id },
-      data: parsed.data
+    const tag = await prisma.$transaction(async (tx) => {
+      const current = await tx.tag.findUniqueOrThrow({ where: { id } })
+      const updated = await tx.tag.update({ where: { id }, data: parsed.data })
+      await tx.auditLog.create({ data: { actorId: admin.id, action: "TAG_UPDATED", entityType: "Tag", entityId: id, before: { name: current.name, sort: current.sort }, after: { name: updated.name, sort: updated.sort } } })
+      return updated
     })
     return NextResponse.json(tag)
   } catch (error) {
@@ -29,11 +31,14 @@ export async function PUT(req: Request, { params }: Props) {
   }
 }
 
-export async function DELETE(_req: Request, { params }: Props) {
+export async function DELETE(_: Request, { params }: Props) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
     const { id } = await params
-    await prisma.tag.delete({ where: { id } })
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.tag.delete({ where: { id } })
+      await tx.auditLog.create({ data: { actorId: admin.id, action: "TAG_DELETED", entityType: "Tag", entityId: id, before: { name: current.name, sort: current.sort } } })
+    })
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {

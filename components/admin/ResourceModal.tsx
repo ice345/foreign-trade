@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -19,8 +19,9 @@ type FormValues = {
   price?: number | null;
   badge?: string;
   followers?: number | null;
+  leadTimeDays?: number | null;
   tags: string;
-  status: "ACTIVE" | "HIDDEN";
+  status: "ACTIVE" | "HIDDEN" | "SOLD_OUT";
   categoryId?: string;
 };
 
@@ -30,7 +31,7 @@ type Props = {
 };
 
 export default function ResourceModal({ onClose, onCreated }: Props) {
-  const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setValue, formState: { isSubmitting } } = useForm<FormValues>({
     defaultValues: { status: "ACTIVE", tags: "", price: null }
   });
 
@@ -40,7 +41,7 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
     staleTime: 5 * 60 * 1000
   });
 
-  const imageUrl = watch("image");
+  const imageUrl = useWatch({ control, name: "image" });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -51,7 +52,7 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
           ? values.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
           : [],
         categoryId: values.categoryId || null
-      } as any);
+      });
       toast.success("资源已创建");
       onCreated();
     } catch {
@@ -137,7 +138,8 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
                 currentUrl={imageUrl}
               />
             </div>
-            <div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
               <label className="mb-1.5 block text-xs font-medium text-white/60">参考价格 (人民币)</label>
               <input
                 className="input w-full"
@@ -148,6 +150,13 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
                   setValueAs: (value) => (value === "" ? null : Number(value))
                 })}
               />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-white/60">预计周期 (天)</label>
+                <input className="input w-full" type="number" min="1" max="365" {...register("leadTimeDays", {
+                  setValueAs: (value) => value === "" ? null : Number(value)
+                })} />
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

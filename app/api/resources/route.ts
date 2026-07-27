@@ -5,16 +5,26 @@ import { Prisma, Resource, ResourceStatus } from "@prisma/client";
 import { createResourceSchema } from "@/lib/validations/resource";
 import { parsePagination } from "@/lib/pagination";
 import { serializeResource, serializeResourceSummary } from "@/lib/serializers";
+import { isInternalFileUrl } from "@/lib/security";
+import { fileIdFromUrl, validateFileReference } from "@/lib/storage";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q") ?? "";
-  const category = searchParams.get("category") ?? "";
-  const platform = searchParams.get("platform") ?? "";
-  const country = searchParams.get("country") ?? "";
-  const status = searchParams.get("status") ?? "";
+  const q = (searchParams.get("q") ?? "").slice(0, 100);
+  const category = (searchParams.get("category") ?? "").slice(0, 100);
+  const platform = (searchParams.get("platform") ?? "").slice(0, 100);
+  const country = (searchParams.get("country") ?? "").slice(0, 100);
+  const goal = (searchParams.get("goal") ?? "").slice(0, 40);
   const { page, pageSize, skip, take } = parsePagination(searchParams, { pageSize: 12 });
   const mode = searchParams.get("mode") ?? "public";
+  const requestedStatus = searchParams.get("status") ?? "";
+  const status = mode === "admin" && ["ACTIVE", "HIDDEN", "SOLD_OUT"].includes(requestedStatus)
+    ? requestedStatus
+    : "";
+  const maxPriceRaw = Number(searchParams.get("maxPrice"));
+  const leadTimeRaw = Number(searchParams.get("leadTime"));
+  const maxPrice = Number.isFinite(maxPriceRaw) && maxPriceRaw >= 0 ? Math.min(maxPriceRaw, 10_000_000) : null;
+  const leadTime = Number.isFinite(leadTimeRaw) && leadTimeRaw > 0 ? Math.min(Math.floor(leadTimeRaw), 365) : null;
   const sort = searchParams.get("sort") ?? "createdAt";
   const direction = searchParams.get("direction") === "asc" ? "asc" : "desc";
 
@@ -49,6 +59,9 @@ export async function GET(request: Request) {
     if (category) conditionsSql = Prisma.sql`${conditionsSql} AND "category" = ${category}`;
     if (platform) conditionsSql = Prisma.sql`${conditionsSql} AND "platform" = ${platform}`;
     if (country) conditionsSql = Prisma.sql`${conditionsSql} AND "country" = ${country}`;
+    if (goal) conditionsSql = Prisma.sql`${conditionsSql} AND ("category" ILIKE ${`%${goal}%`} OR "description" ILIKE ${`%${goal}%`} OR ${goal} = ANY("tags"))`;
+    if (maxPrice !== null) conditionsSql = Prisma.sql`${conditionsSql} AND ("price" IS NULL OR "price" <= ${maxPrice})`;
+    if (leadTime !== null) conditionsSql = Prisma.sql`${conditionsSql} AND ("leadTimeDays" IS NULL OR "leadTimeDays" <= ${leadTime})`;
 
     if (status) {
       conditionsSql = Prisma.sql`${conditionsSql} AND "status" = ${status}`;
@@ -71,6 +84,13 @@ export async function GET(request: Request) {
         category ? { category } : {},
         platform ? { platform } : {},
         country ? { country } : {},
+        goal ? { OR: [
+          { category: { contains: goal, mode: "insensitive" as const } },
+          { description: { contains: goal, mode: "insensitive" as const } },
+          { tags: { has: goal } }
+        ] } : {},
+        maxPrice !== null ? { OR: [{ price: null }, { price: { lte: maxPrice } }] } : {},
+        leadTime !== null ? { OR: [{ leadTimeDays: null }, { leadTimeDays: { lte: leadTime } }] } : {},
         status ? { status: status as ResourceStatus } : mode === "public" ? { status: ResourceStatus.ACTIVE } : {}
       ]
     };
@@ -134,7 +154,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const payload = await request.json();
     const parsed = createResourceSchema.safeParse(payload);
 
@@ -146,8 +166,15 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
-    const resource = await prisma.resource.create({
-      data: {
+    if (data.image && !isInternalFileUrl(data.image)) {
+      return NextResponse.json({ error: "资源图片必须通过本站上传" }, { status: 400 });
+    }
+    if (data.image) {
+      const validFile = await validateFileReference({ url: data.image, purposes: ["RESOURCE_IMAGE"] });
+      if (!validFile) return NextResponse.json({ error: "资源图片不可用" }, { status: 400 });
+    }
+    const resource = await prisma.$transaction(async (tx) => {
+      const created = await tx.resource.create({ data: {
         title: data.title,
         description: data.description,
         category: data.category,
@@ -160,8 +187,18 @@ export async function POST(request: Request) {
         badge: data.badge ?? null,
         followers: data.followers ?? null,
         status: data.status,
-        categoryId: data.categoryId ?? null
-      }
+        categoryId: data.categoryId ?? null,
+        imageFileId: data.image ? fileIdFromUrl(data.image) : null,
+        leadTimeDays: data.leadTimeDays ?? null
+      } });
+      await tx.auditLog.create({ data: {
+        actorId: admin.id,
+        action: "RESOURCE_CREATED",
+        entityType: "Resource",
+        entityId: created.id,
+        after: { title: created.title, status: created.status }
+      } });
+      return created;
     });
     return NextResponse.json(serializeResource(resource));
   } catch (error) {

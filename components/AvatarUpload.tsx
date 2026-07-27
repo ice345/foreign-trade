@@ -168,6 +168,8 @@ export default function AvatarUpload({
       <div className="inline-block">
         {preview ? (
           <div className="relative group">
+            {/* Blob previews are local and cannot use the Next image optimizer. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={preview}
               alt="头像"

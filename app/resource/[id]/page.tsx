@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import OrderButton from "@/components/OrderButton";
@@ -6,6 +7,7 @@ import ResourceReviews from "./ResourceReviews";
 import { toNumberOrNull } from "@/lib/decimal";
 import { buildMetadata, buildResourceJsonLd } from "@/lib/metadata";
 import type { Metadata } from "next";
+import { safeJsonLd } from "@/lib/security";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -64,16 +66,15 @@ export default async function ResourceDetailPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <div className="page-container py-16">
         <div className="grid gap-10 lg:grid-cols-[2fr_1fr]">
           <div className="space-y-6">
             {resource.image ? (
-              <div
-                className="h-56 w-full rounded-3xl border border-white/10 bg-cover bg-center"
-                style={{ backgroundImage: `url(${resource.image})` }}
-              />
+              <div className="relative h-56 w-full overflow-hidden rounded-lg border border-white/10">
+                <Image src={resource.image} alt={resource.title} fill sizes="(max-width: 1024px) 100vw, 66vw" className="object-cover" />
+              </div>
             ) : null}
             <div>
               <span className="text-xs text-muted">{resource.category}</span>
@@ -117,7 +118,7 @@ export default async function ResourceDetailPage({ params }: Props) {
                 <div>{price === 0 ? "价格: 免费" : `参考价: ¥${price.toFixed(2)}`}</div>
               ) : null}
             </div>
-            <Link href={resource.link} target="_blank" className="btn w-full">
+            <Link href={resource.link} target="_blank" rel="noopener noreferrer" className="btn w-full">
               访问资源链接
             </Link>
             <div className="pt-2">

@@ -6,26 +6,29 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#05060a",
-        panel: "#0d0f17",
-        accent: "#6366f1",
-        muted: "#9ca3af",
-        border: "rgba(255, 255, 255, 0.12)",
-        highlight: "#22d3ee"
+        background: "var(--background)",
+        panel: "var(--surface)",
+        accent: "var(--accent)",
+        muted: "var(--text-secondary)",
+        border: "var(--border)",
+        highlight: "var(--info)"
       },
       boxShadow: {
-        soft: "0 0 0 1px rgba(255,255,255,0.06), 0 16px 40px -20px rgba(15, 23, 42, 0.9)",
-        glow: "0 0 30px rgba(99, 102, 241, 0.35)",
-        halo: "0 0 60px rgba(34, 211, 238, 0.25)"
+        soft: "var(--shadow-soft)",
+        glow: "var(--shadow-elevated)",
+        halo: "var(--shadow-elevated)"
       },
       fontFamily: {
         sans: [
-          "Inter",
-          "ui-sans-serif",
-          "system-ui",
           "-apple-system",
           "BlinkMacSystemFont",
+          "SF Pro Text",
+          "Inter",
+          "PingFang SC",
+          "Noto Sans SC",
+          "Microsoft YaHei",
           "Segoe UI",
+          "system-ui",
           "sans-serif"
         ]
       }

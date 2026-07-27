@@ -1,26 +1,10 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
-import { paymentQrCodeSchema } from "@/lib/validations/payment"
 
-type Props = { params: Promise<{ id: string }> }
-
-export async function PUT(req: Request, { params }: Props) {
+export async function PUT() {
   try {
     await requireAdmin()
-    const { id } = await params
-    const body = await req.json()
-    const parsed = paymentQrCodeSchema.partial().safeParse(body)
-
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
-    }
-
-    const qrCode = await prisma.paymentQrCode.update({
-      where: { id },
-      data: parsed.data
-    })
-    return NextResponse.json(qrCode)
+    return NextResponse.json({ error: "收款二维码配置已冻结" }, { status: 410 })
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -29,12 +13,10 @@ export async function PUT(req: Request, { params }: Props) {
   }
 }
 
-export async function DELETE(_req: Request, { params }: Props) {
+export async function DELETE() {
   try {
     await requireAdmin()
-    const { id } = await params
-    await prisma.paymentQrCode.delete({ where: { id } })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ error: "收款二维码配置已冻结" }, { status: 410 })
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

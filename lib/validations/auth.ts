@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export const sendCodeSchema = z
   .object({
-    target: z.string().min(1, "请输入邮箱或手机号"),
+    target: z.string().min(1, "请输入邮箱或手机号").max(254, "账号过长"),
     type: z.enum(["EMAIL", "PHONE"], { message: "类型必须为 EMAIL 或 PHONE" })
   })
   .refine(
@@ -16,13 +16,13 @@ export const sendCodeSchema = z
 export const registerSchema = z
   .object({
     type: z.enum(["EMAIL", "PHONE"]),
-    target: z.string().min(1, "请输入邮箱或手机号"),
+    target: z.string().min(1, "请输入邮箱或手机号").max(254, "账号过长"),
     code: z
       .string()
       .length(6, "验证码为 6 位数字")
       .regex(/^\d{6}$/, "验证码为 6 位数字"),
-    password: z.string().min(8, "密码至少 8 位"),
-    confirmPassword: z.string().min(1, "请确认密码")
+    password: z.string().min(8, "密码至少 8 位").max(128, "密码过长"),
+    confirmPassword: z.string().min(1, "请确认密码").max(128, "密码过长")
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "两次密码不一致",
@@ -41,7 +41,7 @@ export type RegisterInput = z.infer<typeof registerSchema>
 
 export const forgotPasswordSchema = z
   .object({
-    target: z.string().min(1, "请输入邮箱或手机号"),
+    target: z.string().min(1, "请输入邮箱或手机号").max(254, "账号过长"),
     type: z.enum(["EMAIL", "PHONE"], { message: "类型必须为 EMAIL 或 PHONE" })
   })
   .refine(
@@ -55,13 +55,13 @@ export const forgotPasswordSchema = z
 export const resetPasswordSchema = z
   .object({
     type: z.enum(["EMAIL", "PHONE"]),
-    target: z.string().min(1, "请输入邮箱或手机号"),
+    target: z.string().min(1, "请输入邮箱或手机号").max(254, "账号过长"),
     code: z
       .string()
       .length(6, "验证码为 6 位数字")
       .regex(/^\d{6}$/, "验证码为 6 位数字"),
-    password: z.string().min(8, "密码至少 8 位"),
-    confirmPassword: z.string().min(1, "请确认密码")
+    password: z.string().min(8, "密码至少 8 位").max(128, "密码过长"),
+    confirmPassword: z.string().min(1, "请确认密码").max(128, "密码过长")
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "两次密码不一致",

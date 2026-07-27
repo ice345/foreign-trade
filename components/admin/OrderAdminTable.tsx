@@ -8,15 +8,30 @@ import { toast } from "sonner";
 import UploadButton from "@/components/UploadButton";
 import { Trash2, AlertTriangle } from "lucide-react";
 
-const statusOptions = ["PENDING", "RUNNING", "POSTED", "CONFIRMED", "CANCELLED", "REFUNDED"] as const;
-const statusLabel: Record<(typeof statusOptions)[number], string> = {
+const statusLabel: Record<OrderItem["status"], string> = {
   PENDING: "待处理",
+  QUOTED: "已报价",
+  ACCEPTED: "已接受",
   RUNNING: "执行中",
   POSTED: "已发布",
   CONFIRMED: "已确认",
   CANCELLED: "已取消",
   REFUNDED: "已退款"
 };
+
+function nextStatuses(status: OrderItem["status"]) {
+  const map: Record<OrderItem["status"], OrderItem["status"][]> = {
+    PENDING: ["PENDING", "QUOTED"],
+    QUOTED: ["QUOTED"],
+    ACCEPTED: ["ACCEPTED", "RUNNING"],
+    RUNNING: ["RUNNING", "POSTED"],
+    POSTED: ["POSTED", "CONFIRMED"],
+    CONFIRMED: ["CONFIRMED"],
+    CANCELLED: ["CANCELLED"],
+    REFUNDED: ["REFUNDED"]
+  };
+  return map[status];
+}
 
 export default function OrderAdminTable() {
   const [page, setPage] = useState(1);
@@ -32,19 +47,22 @@ export default function OrderAdminTable() {
   const [deleting, setDeleting] = useState<OrderItem | null>(null);
   const [cancelReason, setCancelReason] = useState("管理员取消订单");
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [quoteAmounts, setQuoteAmounts] = useState<Record<string, string>>({});
 
   const handleUpdate = async (order: OrderItem, payload: Partial<OrderItem>) => {
     setSaving(order.id);
     try {
-      await fetch(`/api/orders/${order.id}`, {
+      const response = await fetch(`/api/orders/${order.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "更新失败");
       toast.success("订单已更新");
       refetch();
-    } catch {
-      toast.error("更新失败");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "更新失败");
     } finally {
       setSaving(null);
     }
@@ -100,16 +118,34 @@ export default function OrderAdminTable() {
                 <td className="px-6 py-4 text-xs">
                   {order.user?.email ?? order.user?.phone ?? "-"}
                 </td>
-                <td className="px-6 py-4">¥{order.amount?.toFixed(2) ?? "0.00"}</td>
+                <td className="px-6 py-4">
+                  {order.status === "PENDING" || order.status === "QUOTED" ? (
+                    <input
+                      className="input h-9 w-28"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      aria-label="报价金额"
+                      value={quoteAmounts[order.id] ?? (order.amount ?? order.resourcePrice ?? "")}
+                      onChange={(event) => setQuoteAmounts((current) => ({ ...current, [order.id]: event.target.value }))}
+                    />
+                  ) : order.amount == null ? "--" : `¥${order.amount.toFixed(2)}`}
+                </td>
                 <td className="px-6 py-4">
                   <select
                     className="input h-9 w-full max-w-[140px]"
                     value={order.status}
-                    onChange={(event) =>
-                      handleUpdate(order, { status: event.target.value as OrderItem["status"] })
-                    }
+                    onChange={(event) => {
+                      const status = event.target.value as OrderItem["status"];
+                      handleUpdate(order, {
+                        status,
+                        ...(status === "QUOTED" && {
+                          amount: Number(quoteAmounts[order.id] ?? order.amount ?? order.resourcePrice ?? 0)
+                        })
+                      });
+                    }}
                   >
-                    {statusOptions.map((status) => (
+                    {nextStatuses(order.status).map((status) => (
                       <option key={status} value={status} className="bg-panel">
                         {statusLabel[status]}
                       </option>
@@ -204,12 +240,7 @@ export default function OrderAdminTable() {
             <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
               <div>资源：{deleting.resource?.title ?? "(已删除)"}</div>
               <div>客户：{deleting.user?.email ?? deleting.user?.phone ?? "-"}</div>
-              <div>金额：¥{deleting.amount?.toFixed(2) ?? "0.00"}</div>
-              {deleting.amount && deleting.amount > 0 && deleting.status !== "CONFIRMED" && (
-                <div className="mt-2 text-xs text-amber-300">
-                  订单有扣款且未确认，取消后将自动退款 ¥{deleting.amount.toFixed(2)}
-                </div>
-              )}
+              <div>报价：{deleting.amount == null ? "尚未报价" : `¥${deleting.amount.toFixed(2)}`}</div>
             </div>
             <div className="mb-4">
               <label className="mb-1.5 block text-xs font-medium text-white/60">取消原因</label>

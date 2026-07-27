@@ -21,7 +21,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
     const body = await req.json()
     const parsed = categorySchema.safeParse(body)
 
@@ -29,7 +29,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
     }
 
-    const category = await prisma.category.create({ data: parsed.data })
+    const category = await prisma.$transaction(async (tx) => {
+      const created = await tx.category.create({ data: parsed.data })
+      await tx.auditLog.create({ data: { actorId: admin.id, action: "CATEGORY_CREATED", entityType: "Category", entityId: created.id, after: { name: created.name, sort: created.sort } } })
+      return created
+    })
     return NextResponse.json(category)
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {

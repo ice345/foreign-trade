@@ -12,7 +12,7 @@ type Props = {
   circular?: boolean;
 };
 
-const MAX_SIZE = 5 * 1024 * 1024;
+const MAX_SIZE = 4 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function UploadButton({
@@ -33,7 +33,7 @@ export default function UploadButton({
       return;
     }
     if (file.size > MAX_SIZE) {
-      toast.error("文件大小不能超过 5MB");
+      toast.error("文件大小不能超过 4MB");
       return;
     }
 
@@ -139,7 +139,7 @@ export default function UploadButton({
             <>
               <ImageIcon className={circular ? "h-6 w-6" : "h-8 w-8"} />
               <span className="text-xs">{label}</span>
-              {!circular && <span className="text-[10px]">JPEG / PNG / WebP, 最大 5MB</span>}
+              {!circular && <span className="text-[10px]">JPEG / PNG / WebP, 最大 4MB</span>}
             </>
           )}
         </div>

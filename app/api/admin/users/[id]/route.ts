@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth"
 import { deleteUserSchema } from "@/lib/validations/admin"
 import { sendEmail } from "@/lib/email"
 import { sendSMS } from "@/lib/sms"
+import { escapeHtml } from "@/lib/security"
 
 export async function DELETE(
   request: Request,
@@ -53,20 +54,32 @@ export async function DELETE(
       )
     }
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        status: "DELETED",
-        deletedAt: new Date(),
-        deletedReason: reason
-      }
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          status: "DELETED",
+          sessionVersion: { increment: 1 },
+          deletedAt: new Date(),
+          deletedReason: reason
+        }
+      })
+      await tx.auditLog.create({ data: {
+        actorId: admin.id,
+        action: "USER_DISABLED",
+        entityType: "User",
+        entityId: userId,
+        before: { status: targetUser.status, role: targetUser.role },
+        after: { status: "DELETED", role: targetUser.role },
+        reason
+      } })
     })
 
     if (targetUser.email) {
       sendEmail({
         to: targetUser.email,
         subject: "GlobalPush 账号已被删除",
-        html: `<p>您的 GlobalPush 账号已被管理员删除。</p><p><strong>原因：</strong>${reason}</p><p>如有疑问，请联系客服。</p>`
+        html: `<p>您的 GlobalPush 账号已被管理员删除。</p><p><strong>原因：</strong>${escapeHtml(reason)}</p><p>如有疑问，请联系客服。</p>`
       }).catch((err) => console.error("[User Delete Email Error]", err))
     }
 

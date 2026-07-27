@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const normalizedTarget =
       type === "EMAIL" ? target.trim().toLowerCase() : target.trim()
 
-    const codeValid = await verifyCode(normalizedTarget, code)
+    const codeValid = await verifyCode(normalizedTarget, code, type)
     if (!codeValid) {
       return NextResponse.json(
         { success: false, error: "验证码无效或已过期" },

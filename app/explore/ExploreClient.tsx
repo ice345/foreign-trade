@@ -1,33 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ResourceCard from "@/components/ResourceCard";
 import Pagination from "@/components/Pagination";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const PAGE_SIZE = 12;
 
 export default function ExploreClient() {
   const params = useSearchParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
 
   const category = params.get("category") ?? "";
   const platform = params.get("platform") ?? "";
   const country = params.get("country") ?? "";
-  const filterKey = `${category}|${platform}|${country}`;
-
-  useEffect(() => {
-    setPage(1);
-  }, [filterKey]);
+  const maxPrice = params.get("maxPrice") ?? "";
+  const leadTime = params.get("leadTime") ?? "";
+  const page = Math.max(1, Number.parseInt(params.get("page") ?? "1", 10) || 1);
+  const filterKey = `${category}|${platform}|${country}|${maxPrice}|${leadTime}`;
 
   const queryString = new URLSearchParams({
     ...(category && { category }),
     ...(platform && { platform }),
     ...(country && { country }),
+    ...(maxPrice && { maxPrice }),
+    ...(leadTime && { leadTime }),
     page: String(page),
     pageSize: String(PAGE_SIZE)
   }).toString();
@@ -51,7 +51,9 @@ export default function ExploreClient() {
   });
 
   const handlePageChange = (newPage: number) => {
-    setPage(newPage);
+    const next = new URLSearchParams(params.toString());
+    next.set("page", String(newPage));
+    router.push(`/explore?${next.toString()}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireUser } from "@/lib/auth"
 import { updateProfileSchema } from "@/lib/validations/profile"
+import { isInternalFileUrl } from "@/lib/security"
+import { validateFileReference } from "@/lib/storage"
 
 export async function PUT(req: Request) {
   try {
@@ -17,6 +19,19 @@ export async function PUT(req: Request) {
     }
 
     const data = parsed.data
+    if (data.avatar && !isInternalFileUrl(data.avatar) && data.avatar !== user.avatar) {
+      return NextResponse.json({ error: "头像必须通过本站上传" }, { status: 400 })
+    }
+    if (data.avatar && isInternalFileUrl(data.avatar)) {
+      const validFile = await validateFileReference({
+        url: data.avatar,
+        purposes: ["AVATAR"],
+        ownerId: user.id
+      })
+      if (!validFile) {
+        return NextResponse.json({ error: "头像文件不可用" }, { status: 400 })
+      }
+    }
     await prisma.user.update({
       where: { id: user.id },
       data: {

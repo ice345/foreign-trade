@@ -63,38 +63,39 @@ export async function rateLimitByKey(
   windowMs: number
 ): Promise<{ allowed: boolean; retryAfterMs: number }> {
   try {
-    const { prisma } = await import("@/lib/prisma")
+    const [{ prisma }, { Prisma }] = await Promise.all([
+      import("@/lib/prisma"),
+      import("@prisma/client")
+    ])
     const now = new Date()
     const resetAt = new Date(Date.now() + windowMs)
 
-    return await prisma.$transaction(async (tx) => {
-      const entry = await tx.rateLimitEntry.findUnique({ where: { key } })
+    const [entry] = await prisma.$queryRaw<{ count: number; resetAt: Date }[]>(Prisma.sql`
+      INSERT INTO "RateLimitEntry" ("key", "count", "resetAt", "updatedAt")
+      VALUES (${key}, 1, ${resetAt}, NOW())
+      ON CONFLICT ("key") DO UPDATE SET
+        "count" = CASE
+          WHEN "RateLimitEntry"."resetAt" <= ${now} THEN 1
+          ELSE "RateLimitEntry"."count" + 1
+        END,
+        "resetAt" = CASE
+          WHEN "RateLimitEntry"."resetAt" <= ${now} THEN ${resetAt}
+          ELSE "RateLimitEntry"."resetAt"
+        END,
+        "updatedAt" = NOW()
+      RETURNING "count", "resetAt"
+    `)
 
-      if (!entry || entry.resetAt <= now) {
-        await tx.rateLimitEntry.upsert({
-          where: { key },
-          update: { count: 1, resetAt },
-          create: { key, count: 1, resetAt }
-        })
-        return { allowed: true, retryAfterMs: 0 }
-      }
-
-      if (entry.count >= maxRequests) {
-        return {
-          allowed: false,
-          retryAfterMs: entry.resetAt.getTime() - now.getTime()
-        }
-      }
-
-      await tx.rateLimitEntry.update({
-        where: { key },
-        data: { count: { increment: 1 } }
-      })
-
-      return { allowed: true, retryAfterMs: 0 }
-    })
+    const allowed = entry.count <= maxRequests
+    return {
+      allowed,
+      retryAfterMs: allowed ? 0 : Math.max(0, entry.resetAt.getTime() - now.getTime())
+    }
   } catch (error) {
     console.error("[RateLimit Persistent Error]", error)
+    if (process.env.NODE_ENV === "production") {
+      return { allowed: false, retryAfterMs: windowMs }
+    }
     return rateLimit(key, maxRequests, windowMs)
   }
 }

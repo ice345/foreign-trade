@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -23,14 +23,14 @@ export default function RegisterClient() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting }
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { type: "EMAIL", target: "", code: "", password: "", confirmPassword: "" }
   })
 
-  const target = watch("target")
+  const target = useWatch({ control, name: "target" })
 
   const switchTab = useCallback(
     (newTab: TabType) => {

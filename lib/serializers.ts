@@ -22,5 +22,6 @@ export function serializeResourceSummary(resource: Resource) {
     price: toNumberOrNull(resource.price),
     badge: resource.badge,
     followers: resource.followers,
+    leadTimeDays: resource.leadTimeDays,
   };
 }

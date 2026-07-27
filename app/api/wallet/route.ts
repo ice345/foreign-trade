@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth"
-import { getOrCreateWallet } from "@/lib/wallet"
+import { prisma } from "@/lib/prisma"
 
 export async function GET() {
   try {
     const user = await requireUser()
-    const wallet = await getOrCreateWallet(user.id)
-    return NextResponse.json({ id: wallet.id, balance: Number(wallet.balance) })
+    const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } })
+    return NextResponse.json({
+      id: wallet?.id ?? null,
+      balance: wallet ? Number(wallet.balance) : 0,
+      legacy: Boolean(wallet)
+    })
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

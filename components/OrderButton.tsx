@@ -3,12 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, X, CheckCircle2, ArrowRight } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import Link from "next/link";
-import type { WalletInfo } from "@/lib/types";
-import { fetcherOrNull } from "@/lib/api";
-import { SERVICE_FEE } from "@/lib/constants";
 
 type Props = {
   resourceId: string;
@@ -18,8 +14,6 @@ type Props = {
   className?: string;
   label?: string;
 };
-
-const serviceFee = SERVICE_FEE;
 
 export default function OrderButton({
   resourceId,
@@ -40,17 +34,8 @@ export default function OrderButton({
   const [endDate, setEndDate] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: wallet } = useQuery({
-    queryKey: ["wallet"],
-    queryFn: () => fetcherOrNull<WalletInfo>("/api/wallet"),
-    enabled: isOpen
-  });
-
-  const balance = wallet?.balance ?? 0;
   const hasPrice = resourcePrice !== null && resourcePrice !== undefined;
   const basePrice = hasPrice ? resourcePrice : 0;
-  const total = hasPrice ? basePrice + serviceFee : null;
-  const balanceEnough = total ? balance >= total : true;
 
   const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +58,7 @@ export default function OrderButton({
       if (res.ok) {
         setIsSuccess(true);
         toast.success("订单提交成功！");
-        queryClient.invalidateQueries({ queryKey: ["wallet"] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
         setTimeout(() => {
           setIsOpen(false);
           setIsSuccess(false);
@@ -96,7 +81,7 @@ export default function OrderButton({
         disabled={disabled}
       >
         <ShoppingCart className="h-4 w-4" />
-        {disabled ? "已售罄" : label}
+        {disabled ? "暂不可询价" : label === "立即推广" ? "提交推广需求" : label}
       </button>
 
       <AnimatePresence>
@@ -143,31 +128,14 @@ export default function OrderButton({
                 </div>
               ) : (
                 <form onSubmit={handleOrder} className="flex-1 space-y-5 overflow-y-auto pb-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/70">
                     <div className="flex items-center justify-between">
-                      <span>资源单价</span>
+                      <span>公开参考价</span>
                       <span>{hasPrice ? `¥${basePrice.toFixed(2)}` : "待询价"}</span>
                     </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span>平台服务费</span>
-                      <span>¥{serviceFee.toFixed(2)}</span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white">
-                      <span>总额</span>
-                      <span>{total ? `¥${total.toFixed(2)}` : "待确认"}</span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-white/60">
-                      <span>当前余额 ¥{balance.toFixed(2)}</span>
-                      {!balanceEnough && (
-                        <Link
-                          href="/wallet"
-                          className="btn-outline text-xs"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          去充值
-                        </Link>
-                      )}
-                    </div>
+                    <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-5 text-white/50">
+                      提交后由平台确认渠道档期和执行要求，再向您提供正式报价。此步骤不会扣款。
+                    </p>
                   </div>
 
                   <div>
@@ -194,7 +162,7 @@ export default function OrderButton({
                       />
                     </div>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-white/80">最终成交价</label>
+                      <label className="mb-2 block text-sm font-medium text-white/80">产品参考售价（选填）</label>
                       <input
                         className="input w-full"
                         value={finalPrice}
@@ -242,19 +210,13 @@ export default function OrderButton({
                     </button>
                     <button
                       type="submit"
-                      disabled={isSubmitting || !balanceEnough}
-                      className="btn-primary flex-1 shadow-glow"
+                      disabled={isSubmitting}
+                      className="btn-primary flex-1"
                     >
                       <ArrowRight className="h-4 w-4" />
-                      {isSubmitting ? "提交中..." : "提交推广"}
+                      {isSubmitting ? "提交中..." : "提交需求"}
                     </button>
                   </div>
-
-                  {!balanceEnough && (
-                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200">
-                      余额不足，请先充值后再提交。
-                    </div>
-                  )}
                 </form>
               )}
             </motion.div>

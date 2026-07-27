@@ -71,7 +71,7 @@ export default function DashboardClient() {
         </div>
 
         <div className="card border-white/5">
-          <h3 className="mb-4 text-lg font-semibold">用户消费 TOP 10</h3>
+          <h3 className="mb-4 text-lg font-semibold">用户接受报价 TOP 10</h3>
           <div className="space-y-2">
             {data.rankings.topUsers.map((u, i) => (
               <div key={u.id} className="flex items-center justify-between text-sm">

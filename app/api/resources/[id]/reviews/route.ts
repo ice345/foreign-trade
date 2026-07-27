@@ -20,6 +20,8 @@ function maskPhone(phone: string): string {
 
 export async function GET(req: Request, { params }: Props) {
   const { id } = await params
+  const resource = await prisma.resource.findFirst({ where: { id, status: { not: "HIDDEN" } }, select: { id: true } })
+  if (!resource) return NextResponse.json({ error: "Not found" }, { status: 404 })
   const { searchParams } = new URL(req.url)
   const { page, pageSize, skip, take } = parsePagination(searchParams, { pageSize: 10 })
 

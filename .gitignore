@@ -12,5 +12,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 tsconfig.tsbuildinfo
+r2-migration-failures.json
 .vercel
 .turbo

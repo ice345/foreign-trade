@@ -22,7 +22,7 @@ export default function RevenueChart({ data }: Props) {
 
   return (
     <div className="card border-white/5">
-      <h3 className="mb-4 text-lg font-semibold">收入趋势（近 30 天）</h3>
+      <h3 className="mb-4 text-lg font-semibold">已接受报价趋势（近 30 天）</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={formatted}>
@@ -50,7 +50,7 @@ export default function RevenueChart({ data }: Props) {
                 fontSize: "12px"
               }}
               labelStyle={{ color: "rgba(255,255,255,0.6)" }}
-              formatter={(value) => [`¥${Number(value ?? 0).toFixed(2)}`, "收入"]}
+              formatter={(value) => [`¥${Number(value ?? 0).toFixed(2)}`, "已接受报价"]}
             />
             <Area
               type="monotone"
@@ -58,7 +58,7 @@ export default function RevenueChart({ data }: Props) {
               stroke="#6366f1"
               strokeWidth={2}
               fill="url(#revenueGradient)"
-              name="收入"
+              name="已接受报价"
             />
           </AreaChart>
         </ResponsiveContainer>

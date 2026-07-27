@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
-import { paymentQrCodeSchema } from "@/lib/validations/payment"
 
 export async function GET() {
   try {
@@ -18,18 +17,10 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     await requireAdmin()
-    const body = await req.json()
-    const parsed = paymentQrCodeSchema.safeParse(body)
-
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
-    }
-
-    const qrCode = await prisma.paymentQrCode.create({ data: parsed.data })
-    return NextResponse.json(qrCode)
+    return NextResponse.json({ error: "收款二维码配置已冻结" }, { status: 410 })
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

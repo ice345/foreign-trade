@@ -22,7 +22,7 @@ export async function GET() {
     ] = await Promise.all([
       prisma.order.count({ where: { status: { notIn: ["CANCELLED", "REFUNDED"] } } }),
       prisma.order.aggregate({
-        where: { status: { notIn: ["CANCELLED", "REFUNDED"] } },
+        where: { status: { in: ["ACCEPTED", "RUNNING", "POSTED", "CONFIRMED"] } },
         _sum: { amount: true }
       }),
       prisma.order.count({ where: { status: "PENDING" } }),
@@ -40,7 +40,7 @@ export async function GET() {
         SELECT DATE("createdAt")::text as date, COALESCE(SUM("amount"), 0)::float as revenue
         FROM "Order"
         WHERE "createdAt" >= ${thirtyDaysAgo}
-          AND "status" NOT IN ('CANCELLED', 'REFUNDED')
+          AND "status" IN ('ACCEPTED', 'RUNNING', 'POSTED', 'CONFIRMED')
         GROUP BY DATE("createdAt")
         ORDER BY DATE("createdAt") ASC
       `,
@@ -57,7 +57,7 @@ export async function GET() {
         SELECT u."id", u."email", u."phone", COALESCE(SUM(o."amount"), 0)::float as total
         FROM "User" u
         JOIN "Order" o ON o."userId" = u."id"
-        WHERE o."status" NOT IN ('CANCELLED', 'REFUNDED')
+        WHERE o."status" IN ('ACCEPTED', 'RUNNING', 'POSTED', 'CONFIRMED')
         GROUP BY u."id", u."email", u."phone"
         ORDER BY total DESC
         LIMIT 10

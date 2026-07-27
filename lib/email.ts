@@ -21,10 +21,16 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
     throw new Error("邮件服务未配置")
   }
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: fromEmail,
     to,
     subject,
     html
   })
+
+  if (result.error) {
+    throw new Error(`邮件服务拒绝请求 (${result.error.name})`)
+  }
+
+  return result.data?.id
 }

@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const user = await requireUser();
     const items = await prisma.cartItem.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, resource: { status: "ACTIVE" } },
       orderBy: { createdAt: "desc" },
       include: {
         resource: {
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     const user = await requireUser();
     const { resourceId } = await req.json();
 
-    if (!resourceId) {
+    if (typeof resourceId !== "string" || resourceId.length < 1 || resourceId.length > 100) {
       return NextResponse.json({ error: "resourceId is required" }, { status: 400 });
     }
 

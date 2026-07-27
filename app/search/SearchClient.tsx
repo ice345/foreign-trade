@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ResourceCard from "@/components/ResourceCard";
@@ -14,11 +14,8 @@ export default function SearchClient() {
   const params = useSearchParams();
   const queryClient = useQueryClient();
   const query = params.get("q") ?? "";
-  const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    setPage(1);
-  }, [query]);
+  const [pagination, setPagination] = useState({ query, page: 1 });
+  const page = pagination.query === query ? pagination.page : 1;
 
   const queryString = new URLSearchParams({
     ...(query && { q: query }),
@@ -45,7 +42,7 @@ export default function SearchClient() {
   });
 
   const handlePageChange = (newPage: number) => {
-    setPage(newPage);
+    setPagination({ query, page: newPage });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

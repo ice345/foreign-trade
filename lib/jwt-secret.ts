@@ -7,3 +7,13 @@ export function getJwtSecret() {
 
   return new TextEncoder().encode(raw)
 }
+
+export function getVerificationSecret() {
+  const raw = process.env.VERIFICATION_CODE_SECRET || process.env.JWT_SECRET
+
+  if (!raw) {
+    throw new Error("VERIFICATION_CODE_SECRET environment variable is required")
+  }
+
+  return raw
+}

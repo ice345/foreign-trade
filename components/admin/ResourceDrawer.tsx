@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -23,7 +23,7 @@ type FormValues = Omit<ResourceDetail, "tags"> & {
 };
 
 export default function ResourceDrawer({ resource, onClose, onSaved }: Props) {
-  const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setValue, formState: { isSubmitting } } = useForm<FormValues>({
     defaultValues: {
       ...resource,
       tags: resource.tags.join(", "),
@@ -39,7 +39,7 @@ export default function ResourceDrawer({ resource, onClose, onSaved }: Props) {
     staleTime: 5 * 60 * 1000
   });
 
-  const imageUrl = watch("image");
+  const imageUrl = useWatch({ control, name: "image" });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -136,7 +136,8 @@ export default function ResourceDrawer({ resource, onClose, onSaved }: Props) {
                 currentUrl={imageUrl ?? undefined}
               />
             </div>
-            <div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
               <label className="mb-1.5 block text-xs font-medium text-white/60">参考价格 (人民币)</label>
               <input
                 className="input w-full"
@@ -147,6 +148,13 @@ export default function ResourceDrawer({ resource, onClose, onSaved }: Props) {
                   setValueAs: (value) => (value === "" ? null : Number(value))
                 })}
               />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-white/60">预计周期 (天)</label>
+                <input className="input w-full" type="number" min="1" max="365" {...register("leadTimeDays", {
+                  setValueAs: (value) => value === "" ? null : Number(value)
+                })} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

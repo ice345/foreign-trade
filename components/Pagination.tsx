@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type PaginationProps = {
@@ -12,13 +12,17 @@ type PaginationProps = {
 
 export default function Pagination({ page, pageSize, total, onPageChange }: PaginationProps) {
   const totalPages = Math.ceil(total / pageSize);
-  const [inputValue, setInputValue] = useState(String(page));
-
-  useEffect(() => {
-    setInputValue(String(page));
-  }, [page]);
-
   if (totalPages <= 1) return null;
+  return <PaginationControls key={page} page={page} total={total} totalPages={totalPages} onPageChange={onPageChange} />;
+}
+
+function PaginationControls({ page, total, totalPages, onPageChange }: {
+  page: number;
+  total: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  const [inputValue, setInputValue] = useState(String(page));
 
   const jumpToPage = () => {
     const num = parseInt(inputValue, 10);

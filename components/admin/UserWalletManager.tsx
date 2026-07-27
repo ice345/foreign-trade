@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { fetcher } from "@/lib/api"
 import { toast } from "sonner"
-import { DollarSign, Trash2, AlertTriangle, X } from "lucide-react"
+import { Trash2, AlertTriangle, X } from "lucide-react"
 import type { PaginatedResponse } from "@/lib/types"
 
 type UserRow = {
@@ -28,11 +28,6 @@ const userStatusLabel: Record<UserRow["status"], string> = {
 export default function UserWalletManager() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
-  const [topUpTarget, setTopUpTarget] = useState<UserRow | null>(null)
-  const [amount, setAmount] = useState("")
-  const [description, setDescription] = useState("管理员充值")
-  const [submitting, setSubmitting] = useState(false)
-
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null)
   const [deleteReason, setDeleteReason] = useState("")
   const [deleting, setDeleting] = useState(false)
@@ -44,36 +39,6 @@ export default function UserWalletManager() {
 
   const users = resp?.data ?? []
   const totalPages = resp ? Math.ceil(resp.total / resp.pageSize) : 1
-
-  const handleTopUp = async () => {
-    if (!topUpTarget || !amount) return
-    const numAmount = Number(amount)
-    if (numAmount <= 0) {
-      toast.error("金额必须大于 0")
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      await fetcher("/api/wallet/topup", {
-        method: "POST",
-        body: JSON.stringify({
-          userId: topUpTarget.id,
-          amount: numAmount,
-          description
-        })
-      })
-      toast.success(`已为用户充值 ¥${numAmount.toFixed(2)}`)
-      setTopUpTarget(null)
-      setAmount("")
-      setDescription("管理员充值")
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] })
-    } catch {
-      toast.error("充值失败")
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
   const handleDelete = async () => {
     if (!deleteTarget || !deleteReason.trim()) return
@@ -138,14 +103,6 @@ export default function UserWalletManager() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <button
-                      className="btn-outline text-xs"
-                      onClick={() => setTopUpTarget(user)}
-                      disabled={user.status !== "ACTIVE"}
-                    >
-                      <DollarSign className="mr-1 h-3 w-3" />
-                      充值
-                    </button>
                     {user.role !== "ADMIN" && user.status === "ACTIVE" && (
                       <button
                         className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/10"
@@ -189,57 +146,6 @@ export default function UserWalletManager() {
           >
             下一页
           </button>
-        </div>
-      )}
-
-      {topUpTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setTopUpTarget(null)} />
-          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-panel p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
-                充值 — {topUpTarget.email ?? topUpTarget.phone}
-              </h3>
-              <button onClick={() => setTopUpTarget(null)} className="text-white/50 hover:text-white">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-white/60">充值金额 (¥)</label>
-                <input
-                  className="input w-full"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="输入金额"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-white/60">备注</label>
-                <input
-                  className="input w-full"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="充值备注"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button className="btn-outline flex-1" onClick={() => setTopUpTarget(null)}>
-                  取消
-                </button>
-                <button
-                  className="btn-primary flex-1"
-                  onClick={handleTopUp}
-                  disabled={submitting || !amount}
-                >
-                  {submitting ? "处理中..." : "确认充值"}
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { forgotPasswordSchema } from "@/lib/validations/auth"
 import { sendVerificationCode } from "@/lib/verification"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { prisma } from "@/lib/prisma"
 
 export async function POST(request: Request) {
   try {
@@ -27,14 +28,26 @@ export async function POST(request: Request) {
     const normalizedTarget =
       type === "EMAIL" ? target.trim().toLowerCase() : target.trim()
 
+    const user = await prisma.user.findFirst({
+      where: type === "EMAIL" ? { email: normalizedTarget } : { phone: normalizedTarget },
+      select: { id: true, status: true }
+    })
+
+    if (!user || user.status !== "ACTIVE") {
+      return NextResponse.json({ success: true })
+    }
+
     const result = await sendVerificationCode(normalizedTarget, type)
 
     if (!result.success) {
       const isRateLimited = result.error?.includes("等待")
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: isRateLimited ? 429 : 503 }
-      )
+      if (isRateLimited) {
+        return NextResponse.json(
+          { success: false, error: "请等待 60 秒后再试" },
+          { status: 429 }
+        )
+      }
+      return NextResponse.json({ success: true })
     }
 
     return NextResponse.json({

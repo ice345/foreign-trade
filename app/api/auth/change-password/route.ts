@@ -26,7 +26,7 @@ export async function PUT(req: Request) {
     const hashed = await hashPassword(newPassword)
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashed }
+      data: { password: hashed, sessionVersion: { increment: 1 } }
     })
 
     return NextResponse.json({ success: true })

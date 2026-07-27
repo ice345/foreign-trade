@@ -29,7 +29,11 @@ export default function TimeZones() {
   }, []);
 
   return (
-    <div className="hidden lg:flex items-center gap-3 text-[11px] text-white/60">
+    <details className="group relative hidden lg:block">
+      <summary className="cursor-pointer list-none rounded-lg px-2 py-2 text-xs text-[var(--text-tertiary)] transition hover:bg-white/5 hover:text-white">
+        全球时间
+      </summary>
+      <div className="glass-surface absolute right-0 top-full mt-3 w-48 rounded-lg p-2 shadow-elevated">
       {zones.map((zone) => {
         const formatted = new Intl.DateTimeFormat("zh-CN", {
           timeZone: zone.timeZone,
@@ -38,11 +42,12 @@ export default function TimeZones() {
           hour12: false
         }).format(now);
         return (
-          <div key={zone.label} className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            {zone.label} {formatted}
+          <div key={zone.label} className="flex items-center justify-between rounded-md px-3 py-2 text-xs text-[var(--text-secondary)]">
+            <span>{zone.label}</span><span className="font-medium text-white">{formatted}</span>
           </div>
         );
       })}
-    </div>
+      </div>
+    </details>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { serializeResource, serializeResourceSummary } from "@/lib/serializers";
-import { ResourceStatus } from "@prisma/client";
+import { Prisma, Resource, ResourceStatus } from "@prisma/client";
 
 const mockResource = {
   id: "res-1",
@@ -11,15 +11,16 @@ const mockResource = {
   platform: "Facebook",
   link: "https://example.com",
   image: null,
-  price: "99.50" as unknown,
+  price: new Prisma.Decimal("99.50"),
   badge: null,
   followers: 1000,
   tags: ["test"],
   status: ResourceStatus.ACTIVE,
   categoryId: null,
+  imageFileId: null,
+  leadTimeDays: null,
   createdAt: new Date("2025-01-15T10:00:00Z"),
-  updatedAt: new Date("2025-01-15T10:00:00Z"),
-} as any;
+} satisfies Resource;
 
 describe("serializeResource", () => {
   it("converts price to number", () => {
@@ -61,6 +62,7 @@ describe("serializeResourceSummary", () => {
       price: 99.5,
       badge: null,
       followers: 1000,
+      leadTimeDays: null,
     });
   });
 

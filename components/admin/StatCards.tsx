@@ -14,7 +14,7 @@ type Props = {
 
 const cards = [
   { key: "totalOrders", label: "总订单", icon: ShoppingCart, format: (v: number) => v.toString() },
-  { key: "totalRevenue", label: "总收入", icon: DollarSign, format: (v: number) => `¥${v.toFixed(2)}` },
+  { key: "totalRevenue", label: "已接受报价", icon: DollarSign, format: (v: number) => `¥${v.toFixed(2)}` },
   { key: "pendingOrders", label: "待处理", icon: Clock, format: (v: number) => v.toString() },
   { key: "activeResources", label: "活跃资源", icon: Package, format: (v: number) => v.toString() },
   { key: "totalUsers", label: "用户数", icon: Users, format: (v: number) => v.toString() }

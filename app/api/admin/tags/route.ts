@@ -18,7 +18,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
     const body = await req.json()
     const parsed = tagSchema.safeParse(body)
 
@@ -26,7 +26,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
     }
 
-    const tag = await prisma.tag.create({ data: parsed.data })
+    const tag = await prisma.$transaction(async (tx) => {
+      const created = await tx.tag.create({ data: parsed.data })
+      await tx.auditLog.create({ data: { actorId: admin.id, action: "TAG_CREATED", entityType: "Tag", entityId: created.id, after: { name: created.name, sort: created.sort } } })
+      return created
+    })
     return NextResponse.json(tag)
   } catch (error) {
     if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {

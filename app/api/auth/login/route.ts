@@ -51,7 +51,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "账号或密码错误" }, { status: 401 });
     }
 
-    const token = await createToken({ userId: user.id, role: user.role });
+    const token = await createToken({
+      userId: user.id,
+      role: user.role,
+      sessionVersion: user.sessionVersion
+    });
     await setSessionToken(token);
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -57,7 +57,7 @@ async function main() {
     skipDuplicates: true
   });
 
-  const resources = [
+  const resources: Prisma.ResourceCreateManyInput[] = [
     {
       title: "Home Deals Facebook Group",
       description: "美国大型家居优惠群组，适合家居类目推广。",
@@ -159,7 +159,7 @@ async function main() {
   ];
 
   await prisma.resource.createMany({
-    data: resources as any,
+    data: resources,
     skipDuplicates: true
   });
 }

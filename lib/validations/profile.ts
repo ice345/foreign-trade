@@ -1,8 +1,9 @@
 import { z } from "zod"
+import { isSafeStoredImageUrl } from "@/lib/security"
 
 export const updateProfileSchema = z.object({
   nickname: z.string().max(50, "昵称过长").optional(),
-  avatar: z.string().url("头像链接格式不正确").optional().nullable()
+  avatar: z.string().refine(isSafeStoredImageUrl, "头像必须来自安全上传").optional().nullable()
 })
 
 export const changePasswordSchema = z.object({

@@ -1,126 +1,120 @@
-"use client";
+"use client"
 
-import { useQuery } from "@tanstack/react-query";
-import { fetcherOrNull } from "@/lib/api";
-import type { OrderItem } from "@/lib/types";
-import { CheckCircle2, Link2, ImageIcon } from "lucide-react";
+import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { CheckCircle2, ImageIcon, Link2 } from "lucide-react"
+import { toast } from "sonner"
+import { fetcherOrNull } from "@/lib/api"
+import type { OrderItem } from "@/lib/types"
 
-const steps = ["PENDING", "RUNNING", "POSTED", "CONFIRMED"];
-
+const steps = ["PENDING", "QUOTED", "ACCEPTED", "RUNNING", "POSTED", "CONFIRMED"] as const
 const statusLabels: Record<string, string> = {
-  PENDING: "待审核",
+  PENDING: "待评估",
+  QUOTED: "已报价",
+  ACCEPTED: "已接受",
   RUNNING: "执行中",
-  POSTED: "已发帖",
+  POSTED: "已发布",
   CONFIRMED: "已确认",
   CANCELLED: "已取消",
   REFUNDED: "已退款"
-};
+}
 
 export default function OrderTracking() {
+  const queryClient = useQueryClient()
+  const [accepting, setAccepting] = useState<string | null>(null)
   const { data } = useQuery({
     queryKey: ["orders"],
     queryFn: () => fetcherOrNull<OrderItem[]>("/api/orders")
-  });
+  })
+
+  const acceptQuote = async (id: string) => {
+    setAccepting(id)
+    try {
+      const response = await fetch(`/api/orders/${id}/accept`, { method: "POST" })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || "接受报价失败")
+      toast.success("已接受报价，平台将安排执行")
+      await queryClient.invalidateQueries({ queryKey: ["orders"] })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "接受报价失败")
+    } finally {
+      setAccepting(null)
+    }
+  }
 
   if (!data?.length) {
-    return <div className="text-sm text-white/50">暂无订单记录</div>;
+    return <div className="empty-state">暂无推广需求记录</div>
   }
 
   return (
     <div className="space-y-4">
       {data.map((order) => {
-        const rawIndex = steps.indexOf(order.status);
-        const currentIndex = rawIndex === -1 ? 0 : rawIndex;
-        const isClosed = order.status === "CANCELLED" || order.status === "REFUNDED";
+        const rawIndex = steps.indexOf(order.status as (typeof steps)[number])
+        const currentIndex = rawIndex === -1 ? 0 : rawIndex
+        const isClosed = order.status === "CANCELLED" || order.status === "REFUNDED"
+        const title = order.resource?.title ?? order.resourceTitle ?? "历史推广资源"
+
         return (
-          <div key={order.id} className="card space-y-4">
-            <div className="flex items-center justify-between">
+          <article key={order.id} className="resource-surface space-y-5 p-5 md:p-6">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
               <div>
-                <h3 className="text-lg font-semibold">{order.resource?.title ?? "已删除资源"}</h3>
-                <p className="text-xs text-white/50">订单号：{order.id.slice(0, 8)}</p>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">需求编号 #{order.id.slice(0, 8)}</p>
               </div>
-              <div className="text-right text-sm text-white/60">
-                <div>金额 ¥{order.amount?.toFixed(2) ?? "0.00"}</div>
-                {isClosed && (
-                  <div className={order.status === "REFUNDED" ? "text-green-400" : "text-white/40"}>
-                    {statusLabels[order.status]}
-                  </div>
-                )}
+              <div className="sm:text-right">
+                <div className="text-sm font-medium text-[var(--text-primary)]">
+                  {order.amount == null ? "等待报价" : `报价 ¥${order.amount.toFixed(2)}`}
+                </div>
+                <div className={`mt-1 text-xs ${isClosed ? "text-[var(--danger)]" : "text-[var(--accent-soft)]"}`}>
+                  {statusLabels[order.status]}
+                </div>
               </div>
             </div>
 
-            <div className={`flex items-center gap-2 text-xs text-white/50 ${isClosed ? "opacity-50" : ""}`}>
+            <div className={`grid grid-cols-3 gap-2 md:grid-cols-6 ${isClosed ? "opacity-45" : ""}`}>
               {steps.map((step, index) => {
-                const isActive = index <= currentIndex;
+                const active = index <= currentIndex
                 return (
-                  <div key={step} className="flex items-center gap-2">
-                    <span
-                      className={`flex h-6 w-6 items-center justify-center rounded-full border ${
-                        isActive ? "border-accent bg-accent/20 text-accent" : "border-white/10 text-white/30"
-                      }`}
-                    >
+                  <div key={step} className="min-w-0 text-center">
+                    <span className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full border text-xs ${active ? "border-[var(--accent)] bg-[var(--accent-muted)] text-white" : "border-[var(--border)] text-[var(--text-tertiary)]"}`}>
                       {index + 1}
                     </span>
-                    <span className={isActive ? "text-white" : "text-white/40"}>{statusLabels[step]}</span>
-                    {index < steps.length - 1 && <span className="mx-1 h-px w-6 bg-white/10" />}
+                    <span className={`mt-2 block truncate text-xs ${active ? "text-[var(--text-secondary)]" : "text-[var(--text-tertiary)]"}`}>
+                      {statusLabels[step]}
+                    </span>
                   </div>
-                );
+                )
               })}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-white/60">
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                折扣码：{order.discountCode || "未填写"}
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                最终成交价：{order.finalPrice ? `¥${order.finalPrice.toFixed(2)}` : "未填写"}
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                时间：{order.startDate?.slice(0, 10) || "--"} 至 {order.endDate?.slice(0, 10) || "--"}
-              </span>
-            </div>
+            {order.status === "QUOTED" && (
+              <div className="flex flex-col justify-between gap-4 rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] p-4 sm:flex-row sm:items-center">
+                <div>
+                  <p className="text-sm font-medium">报价等待确认</p>
+                  {order.quoteNote && <p className="mt-1 text-sm text-[var(--text-secondary)]">{order.quoteNote}</p>}
+                </div>
+                <button className="btn-primary shrink-0" disabled={accepting === order.id} onClick={() => acceptQuote(order.id)}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  {accepting === order.id ? "确认中" : "接受报价"}
+                </button>
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-3">
               {order.screenshotUrl ? (
-                <a
-                  className="btn-outline text-xs"
-                  href={order.screenshotUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <ImageIcon className="h-3.5 w-3.5" />
-                  查看截图
+                <a className="btn-outline text-xs" href={order.screenshotUrl} target="_blank" rel="noreferrer">
+                  <ImageIcon className="h-3.5 w-3.5" />查看截图
                 </a>
-              ) : (
-                <button className="btn-outline text-xs opacity-40" disabled>
-                  <ImageIcon className="h-3.5 w-3.5" />
-                  查看截图
-                </button>
-              )}
+              ) : null}
               {order.postLink ? (
-                <a
-                  className="btn-outline text-xs"
-                  href={order.postLink}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  跳转链接
+                <a className="btn-outline text-xs" href={order.postLink} target="_blank" rel="noreferrer">
+                  <Link2 className="h-3.5 w-3.5" />查看发布链接
                 </a>
-              ) : (
-                <button className="btn-outline text-xs opacity-40" disabled>
-                  <Link2 className="h-3.5 w-3.5" />
-                  跳转链接
-                </button>
-              )}
-              <button className="btn-outline text-xs opacity-60" disabled>
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                下载全部截图
-              </button>
+              ) : null}
             </div>
-          </div>
-        );
+          </article>
+        )
       })}
     </div>
-  );
+  )
 }

@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     if (includeResources) {
       const favorites = await prisma.favorite.findMany({
-        where: { userId: user.id },
+        where: { userId: user.id, resource: { status: "ACTIVE" } },
         include: { resource: true }
       });
 
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     }
 
     const favorites = await prisma.favorite.findMany({
-      where: { userId: user.id }
+      where: { userId: user.id, resource: { status: "ACTIVE" } }
     });
     return NextResponse.json(favorites.map((fav) => fav.resourceId));
   } catch (error) {
@@ -59,7 +59,9 @@ export async function POST(request: Request) {
   try {
     const user = await requireUser();
     const { resourceId } = await request.json();
-    if (!resourceId) return new NextResponse("Missing resourceId", { status: 400 });
+    if (typeof resourceId !== "string" || resourceId.length < 1 || resourceId.length > 100) {
+      return new NextResponse("Missing resourceId", { status: 400 });
+    }
     const existing = await prisma.favorite.findUnique({
       where: { userId_resourceId: { userId: user.id, resourceId } }
     });
@@ -67,6 +69,8 @@ export async function POST(request: Request) {
       await prisma.favorite.delete({ where: { id: existing.id } });
       return NextResponse.json({ ok: true });
     }
+    const resource = await prisma.resource.findFirst({ where: { id: resourceId, status: "ACTIVE" }, select: { id: true } });
+    if (!resource) return NextResponse.json({ error: "资源不存在" }, { status: 404 });
     await prisma.favorite.create({
       data: { userId: user.id, resourceId }
     });

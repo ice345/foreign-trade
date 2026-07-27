@@ -3,7 +3,6 @@ type SmsProvider = {
 }
 
 // 阻止 webpack 静态分析 require
-// eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
 const dynamicRequire = new Function("mod", "return require(mod)") as (mod: string) => unknown
 
 function extractCode(message: string): string {

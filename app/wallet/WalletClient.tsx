@@ -5,7 +5,6 @@ import { api } from "@/lib/api";
 import { Wallet, ArrowDownCircle, ArrowUpCircle, RefreshCw, Loader2 } from "lucide-react";
 import type { WalletInfo, TransactionItem, PaginatedResponse } from "@/lib/types";
 import { useState } from "react";
-import Link from "next/link";
 
 export default function WalletClient() {
   const [page, setPage] = useState(1);
@@ -24,12 +23,12 @@ export default function WalletClient() {
 
   return (
     <div className="page-container py-16">
-      <h1 className="mb-8 text-3xl font-semibold">我的钱包</h1>
+      <h1 className="mb-8 text-3xl font-semibold">历史钱包</h1>
 
-      <div className="mb-8 rounded-2xl border border-white/10 bg-gradient-to-br from-accent/10 via-transparent to-transparent p-8">
+      <div className="resource-surface mb-8 p-8">
         <div className="flex items-center gap-3 text-sm text-white/50">
           <Wallet className="h-5 w-5" />
-          可用余额
+          历史余额
         </div>
         {walletLoading ? (
           <div className="mt-3 flex items-center gap-2 text-white/50">
@@ -43,12 +42,9 @@ export default function WalletClient() {
             <div className="mt-3 text-4xl font-bold text-white">
               ¥{wallet?.balance.toFixed(2) ?? "0.00"}
             </div>
-            <div className="mt-3 flex items-center gap-3">
-              <Link href="/wallet/topup" className="btn-primary text-sm">
-                去充值
-              </Link>
-              <span className="text-sm text-white/40">或联系管理员充值</span>
-            </div>
+            <p className="mt-3 text-sm text-white/45">
+              {wallet?.legacy ? "历史余额只读保留，平台已停止新增充值。" : "该账号没有历史钱包记录。"}
+            </p>
           </>
         )}
       </div>

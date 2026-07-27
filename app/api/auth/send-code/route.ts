@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { sendCodeSchema } from "@/lib/validations/auth"
 import { sendVerificationCode } from "@/lib/verification"
-import { rateLimitByKey } from "@/lib/rate-limit"
+import { rateLimitByIp, rateLimitByKey } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +19,14 @@ export async function POST(request: Request) {
     const { target, type } = parsed.data
     const normalizedTarget =
       type === "EMAIL" ? target.trim().toLowerCase() : target.trim()
+
+    const ipLimit = await rateLimitByIp(request, "send-code", 10, 60 * 60 * 1000)
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: "请求过于频繁，请稍后再试" },
+        { status: 429 }
+      )
+    }
 
     const limit = await rateLimitByKey(
       `send-code:target:${encodeURIComponent(normalizedTarget)}`,

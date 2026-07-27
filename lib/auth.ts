@@ -4,8 +4,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getJwtSecret } from "@/lib/jwt-secret";
 
-const tokenName = "globalpush_token";
+export const tokenName = "globalpush_token";
 const MAX_AGE = 7 * 24 * 60 * 60;
+const TOKEN_ISSUER = "globalpush";
+const TOKEN_AUDIENCE = "globalpush-web";
 
 export async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
@@ -16,10 +18,13 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export async function createToken(payload: { userId: string; role: string }) {
+export async function createToken(payload: { userId: string; role: string; sessionVersion: number }) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
+    .setIssuer(TOKEN_ISSUER)
+    .setAudience(TOKEN_AUDIENCE)
+    .setSubject(payload.userId)
     .setExpirationTime("7d")
     .sign(getJwtSecret());
 }
@@ -29,7 +34,7 @@ export async function setSessionToken(token: string) {
   cookieStore.set(tokenName, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: MAX_AGE
   });
@@ -40,7 +45,7 @@ export async function clearSessionToken() {
   cookieStore.set(tokenName, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     expires: new Date(0)
   });
@@ -51,8 +56,11 @@ export async function getSession() {
   const token = cookieStore.get(tokenName)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret());
-    return payload as { userId: string; role: string };
+    const { payload } = await jwtVerify(token, getJwtSecret(), {
+      issuer: TOKEN_ISSUER,
+      audience: TOKEN_AUDIENCE
+    });
+    return payload as { userId: string; role: string; sessionVersion: number };
   } catch {
     return null;
   }
@@ -64,6 +72,7 @@ export async function requireUser() {
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) throw new Error("Unauthorized");
   if (user.status !== "ACTIVE") throw new Error("Unauthorized");
+  if (user.sessionVersion !== session.sessionVersion) throw new Error("Unauthorized");
   return user;
 }
 

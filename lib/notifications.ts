@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { sendEmail } from "@/lib/email"
 import type { NotificationType } from "@prisma/client"
+import { escapeHtml } from "@/lib/security"
 
 type CreateNotificationParams = {
   userId: string
@@ -34,8 +35,8 @@ export async function createNotification({
         to: user.email,
         subject: title,
         html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-          <h2 style="color:#333">${title}</h2>
-          <p style="color:#666;line-height:1.6">${message}</p>
+          <h2 style="color:#333">${escapeHtml(title)}</h2>
+          <p style="color:#666;line-height:1.6">${escapeHtml(message)}</p>
           <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
           <p style="color:#999;font-size:12px">— GlobalPush</p>
         </div>`

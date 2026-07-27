@@ -19,6 +19,7 @@ export type ResourceSummary = {
   followers?: number | null;
   averageRating?: number | null;
   reviewCount?: number;
+  leadTimeDays?: number | null;
 };
 
 export type ResourceDetail = ResourceSummary & {
@@ -32,8 +33,11 @@ export type ResourceDetail = ResourceSummary & {
 
 export type OrderItem = {
   id: string;
-  status: "PENDING" | "RUNNING" | "POSTED" | "CONFIRMED" | "CANCELLED" | "REFUNDED";
+  status: "PENDING" | "QUOTED" | "ACCEPTED" | "RUNNING" | "POSTED" | "CONFIRMED" | "CANCELLED" | "REFUNDED";
   amount?: number | null;
+  resourceTitle?: string | null;
+  resourcePrice?: number | null;
+  quoteNote?: string | null;
   productLink?: string | null;
   discountCode?: string | null;
   finalPrice?: number | null;
@@ -64,8 +68,9 @@ export type UserProfile = {
 };
 
 export type WalletInfo = {
-  id: string;
+  id: string | null;
   balance: number;
+  legacy: boolean;
 };
 
 export type TransactionItem = {

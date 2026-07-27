@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { AnimatePresence, motion } from "framer-motion"
-import { Menu, X, ShoppingCart } from "lucide-react"
+import { Menu, X, ShoppingCart, ArrowUpRight } from "lucide-react"
 import { fetcherOrNull } from "@/lib/api"
 import type { UserProfile } from "@/lib/types"
 import type { CartItemData } from "@/lib/types"
@@ -22,8 +23,7 @@ const baseLinks = [
 const userLinks = [
   { href: "/profile", label: "收藏中心" },
   { href: "/profile/settings", label: "个人设置" },
-  { href: "/orders", label: "订单进度" },
-  { href: "/wallet", label: "钱包" }
+  { href: "/orders", label: "需求进度" }
 ]
 
 const adminLinks = [
@@ -33,7 +33,7 @@ const adminLinks = [
   { href: "/admin/users", label: "用户管理" },
   { href: "/admin/categories", label: "分类管理" },
   { href: "/admin/tags", label: "标签管理" },
-  { href: "/admin/payments", label: "支付管理" }
+  { href: "/admin/payments", label: "历史账务" }
 ]
 
 export default function SiteNav() {
@@ -53,15 +53,9 @@ export default function SiteNav() {
 
   const cartCount = cartItems?.length ?? 0
 
-  const allMobileLinks = [
-    ...baseLinks,
-    ...(user ? userLinks : []),
-    ...(user?.role === "ADMIN" ? adminLinks : [])
-  ]
-
   return (
-    <header className="relative z-50 border-b border-white/5 bg-black/30 backdrop-blur">
-      <div className="page-container flex items-center justify-between gap-4 py-5">
+    <header className="sticky top-0 z-50 px-3 py-3 md:px-6">
+      <div className="glass-surface mx-auto flex min-h-16 w-full max-w-[1360px] items-center justify-between gap-4 rounded-xl px-4 py-2.5 md:px-6">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setDrawerOpen(true)}
@@ -70,12 +64,13 @@ export default function SiteNav() {
           >
             <Menu size={22} />
           </button>
-          <Link href="/" className="text-lg font-semibold text-white">
-            GlobalPush
+          <Link href="/" className="flex items-center gap-2.5 text-lg font-semibold text-white">
+            <Image src="/icon.svg" alt="" width={36} height={36} className="h-9 w-9" priority />
+            <span className="hidden sm:inline">GlobalPush</span>
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
+        <nav className="hidden items-center gap-7 text-sm text-[var(--text-secondary)] md:flex">
           {baseLinks.map((link) => (
             <Link
               key={link.href}
@@ -89,6 +84,7 @@ export default function SiteNav() {
           {user?.role === "ADMIN" && (
             <NavDropdown label="管理" links={adminLinks} />
           )}
+          <Link href="/orders" className="inline-flex items-center gap-1 hover:text-white">需求档案<ArrowUpRight className="h-3.5 w-3.5" /></Link>
         </nav>
 
         <div className="flex items-center gap-4">
@@ -123,7 +119,7 @@ export default function SiteNav() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gray-900 p-6 shadow-xl"
+              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-[var(--surface)] p-6 shadow-xl"
             >
               <button
                 onClick={() => setDrawerOpen(false)}
@@ -136,9 +132,11 @@ export default function SiteNav() {
               {user && (
                 <div className="mb-4 flex items-center gap-3 rounded-xl bg-white/5 px-3 py-3">
                   {user.avatar ? (
-                    <img
+                    <Image
                       src={user.avatar}
                       alt=""
+                      width={40}
+                      height={40}
                       className="h-10 w-10 rounded-full object-cover border border-white/10"
                     />
                   ) : (
@@ -173,6 +171,13 @@ export default function SiteNav() {
                   {link.label}
                 </Link>
               ))}
+
+              {!user && (
+                <div className="mt-6 grid grid-cols-2 gap-2">
+                  <Link href="/login" onClick={() => setDrawerOpen(false)} className="btn-outline">登录</Link>
+                  <Link href="/register" onClick={() => setDrawerOpen(false)} className="btn-primary">注册</Link>
+                </div>
+              )}
 
               {user && (
                 <>
