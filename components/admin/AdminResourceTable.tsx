@@ -8,6 +8,7 @@ import { Settings2, Plus, ArrowUpDown, MoreHorizontal, EyeOff, Eye, Trash2 } fro
 import ResourceDrawer from "./ResourceDrawer";
 import ResourceModal from "./ResourceModal";
 import type { ResourceDetail } from "@/lib/types";
+import { RESOURCE_PLATFORMS } from "@/lib/resource-platforms";
 
 type Paginated = {
   data: ResourceDetail[];
@@ -117,10 +118,9 @@ export default function AdminResourceTable() {
           onChange={(event) => setFilters({ ...filters, platform: event.target.value })}
         >
           <option value="" className="bg-panel">全部平台</option>
-          <option value="Facebook 群组" className="bg-panel">Facebook 群组</option>
-          <option value="Telegram 频道" className="bg-panel">Telegram 频道</option>
-          <option value="Deal 站编辑" className="bg-panel">Deal 站编辑</option>
-          <option value="TikTok 红人" className="bg-panel">TikTok 红人</option>
+          {RESOURCE_PLATFORMS.map((platform) => (
+            <option key={platform} value={platform} className="bg-panel">{platform}</option>
+          ))}
         </select>
 
         <select

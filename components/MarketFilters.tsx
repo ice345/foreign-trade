@@ -41,7 +41,7 @@ export default function MarketFilters({ facets }: Props) {
   const [isPending, startTransition] = useTransition();
   const sections: Section[] = [
     { key: "country", label: "国家选择", options: facets.countries.map((value) => ({ value, label: value, icon: sectionIcon("country", value) })) },
-    { key: "platform", label: "平台类型", options: facets.platforms.map((value) => ({ value, label: value, icon: sectionIcon("platform", value) })) },
+    { key: "platform", label: "平台", options: facets.platforms.map((value) => ({ value, label: value, icon: sectionIcon("platform", value) })) },
     { key: "category", label: "类目筛选", options: facets.categories.map((value) => ({ value, label: value, icon: sectionIcon("category", value) })) }
   ];
 

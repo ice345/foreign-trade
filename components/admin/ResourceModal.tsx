@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { X, PlusCircle } from "lucide-react";
 import UploadButton from "@/components/UploadButton";
+import { RESOURCE_PLATFORMS } from "@/lib/resource-platforms";
 
 type FormValues = {
   title: string;
@@ -32,7 +33,7 @@ type Props = {
 
 export default function ResourceModal({ onClose, onCreated }: Props) {
   const { register, handleSubmit, control, setValue, formState: { isSubmitting } } = useForm<FormValues>({
-    defaultValues: { status: "ACTIVE", tags: "", price: null }
+    defaultValues: { status: "ACTIVE", tags: "", price: null, platform: "" }
   });
 
   const { data: categories = [] } = useQuery({
@@ -55,8 +56,8 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
       });
       toast.success("资源已创建");
       onCreated();
-    } catch {
-      toast.error("创建失败");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "创建失败");
     }
   });
 
@@ -106,7 +107,12 @@ export default function ResourceModal({ onClose, onCreated }: Props) {
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-white/60">平台</label>
-                <input className="input w-full" placeholder="例如: Facebook 群组" {...register("platform", { required: true })} />
+                <select className="input w-full cursor-pointer appearance-none" {...register("platform", { required: true })}>
+                  <option value="" className="bg-panel">选择平台</option>
+                  {RESOURCE_PLATFORMS.map((platform) => (
+                    <option key={platform} value={platform} className="bg-panel">{platform}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

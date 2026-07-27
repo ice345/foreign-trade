@@ -5,7 +5,7 @@ const sections = [
   {
     icon: PackageSearch,
     title: "资源管理",
-    body: "新增资源时完整填写国家、平台、分类、参考价格和预计周期。国家与分类应使用现有选项，避免“美国”和“US”被当成两个筛选值。ACTIVE 对用户可见，HIDDEN 用于暂存，SOLD_OUT 表示当前不可询价。图片必须通过站内上传进入 R2。"
+    body: "在资源管理中点击“新增资源”创建。平台只选择 Reddit、Facebook、Telegram 等一级平台；群组、频道、达人或编辑等载体类型写在标题、描述和标签里。完整填写国家、分类、参考价格和预计周期。ACTIVE 对用户可见，HIDDEN 用于暂存，SOLD_OUT 表示当前不可询价。图片必须通过站内上传进入 R2。"
   },
   {
     icon: FileCheck2,

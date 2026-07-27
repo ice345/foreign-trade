@@ -4,9 +4,9 @@ import { isSafeStoredImageUrl } from "@/lib/security"
 export const createResourceSchema = z.object({
   title: z.string().min(1, "标题不能为空").max(200, "标题过长"),
   description: z.string().min(1, "描述不能为空").max(5000, "描述过长"),
-  category: z.string().min(1, "分类不能为空"),
-  country: z.string().min(1, "国家不能为空"),
-  platform: z.string().min(1, "平台不能为空"),
+  category: z.string().trim().min(1, "分类不能为空").max(100, "分类过长"),
+  country: z.string().trim().min(1, "国家不能为空").max(100, "国家过长"),
+  platform: z.string().trim().min(1, "平台不能为空").max(50, "平台名称过长"),
   link: z.string().url("链接格式不正确").refine(
     (url) => url.startsWith("https://"),
     { message: "链接必须以 https:// 开头" }

@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Filter } from "lucide-react";
 import { api } from "@/lib/api";
+import { RESOURCE_PLATFORMS } from "@/lib/resource-platforms";
 
 type FilterOption = {
   key: string;
@@ -13,7 +14,7 @@ type FilterOption = {
 
 const staticFilters: FilterOption[] = [
   { key: "country", label: "国家", options: ["美国", "英国", "德国", "日本"] },
-  { key: "platform", label: "平台", options: ["Facebook 群组", "Telegram 频道", "Deal 站编辑", "TikTok 红人"] }
+  { key: "platform", label: "平台", options: [...RESOURCE_PLATFORMS] }
 ];
 
 export default function FilterBar() {

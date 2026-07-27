@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { X, Save } from "lucide-react";
 import type { ResourceDetail } from "@/lib/types";
 import UploadButton from "@/components/UploadButton";
+import { resourcePlatformOptions } from "@/lib/resource-platforms";
 
 type Props = {
   resource: ResourceDetail;
@@ -53,8 +54,8 @@ export default function ResourceDrawer({ resource, onClose, onSaved }: Props) {
       toast.success("资源已更新");
       onSaved();
       onClose();
-    } catch {
-      toast.error("更新失败");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "更新失败");
     }
   });
 
@@ -104,7 +105,11 @@ export default function ResourceDrawer({ resource, onClose, onSaved }: Props) {
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-white/60">平台</label>
-                <input className="input w-full" placeholder="例如: Facebook 群组" {...register("platform", { required: true })} />
+                <select className="input w-full cursor-pointer appearance-none" {...register("platform", { required: true })}>
+                  {resourcePlatformOptions(resource.platform).map((platform) => (
+                    <option key={platform} value={platform} className="bg-panel">{platform}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

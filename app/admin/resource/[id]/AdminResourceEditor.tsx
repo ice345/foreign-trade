@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import type { ResourceDetail } from "@/lib/types";
+import { resourcePlatformOptions } from "@/lib/resource-platforms";
 
 type FormValues = Omit<ResourceDetail, "tags"> & {
   tags: string;
@@ -32,8 +33,8 @@ export default function AdminResourceEditor({ resource }: { resource: ResourceDe
           : []
       });
       toast.success("资源已更新");
-    } catch {
-      toast.error("更新失败");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "更新失败");
     }
   });
 
@@ -43,7 +44,11 @@ export default function AdminResourceEditor({ resource }: { resource: ResourceDe
         <input className="input" placeholder="标题" {...register("title", { required: true })} />
         <input className="input" placeholder="分类（如：家居）" {...register("category", { required: true })} />
         <input className="input" placeholder="国家" {...register("country", { required: true })} />
-        <input className="input" placeholder="平台（如：Facebook 群组）" {...register("platform", { required: true })} />
+        <select className="input" {...register("platform", { required: true })}>
+          {resourcePlatformOptions(resource.platform).map((platform) => (
+            <option key={platform} value={platform}>{platform}</option>
+          ))}
+        </select>
       </div>
       <input className="input" placeholder="资源链接" {...register("link", { required: true })} />
       <input className="input" placeholder="图片链接" {...register("image")} />
@@ -78,6 +83,7 @@ export default function AdminResourceEditor({ resource }: { resource: ResourceDe
       <select className="input" {...register("status")}>
         <option value="ACTIVE">Active</option>
         <option value="HIDDEN">Hidden</option>
+        <option value="SOLD_OUT">Sold Out</option>
       </select>
       <button className="btn w-full" type="submit">
         保存修改
