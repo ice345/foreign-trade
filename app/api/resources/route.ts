@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { Prisma, Resource, ResourceStatus } from "@prisma/client";
+import { Prisma, ResourceStatus } from "@prisma/client";
 import { createResourceSchema } from "@/lib/validations/resource";
 import { parsePagination } from "@/lib/pagination";
 import { serializeResource, serializeResourceSummary } from "@/lib/serializers";
@@ -39,78 +39,44 @@ export async function GET(request: Request) {
     }
   }
 
-  const shouldUseFullText = q.length > 0;
+  const where: Prisma.ResourceWhereInput = {
+    AND: [
+      q ? { OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { category: { contains: q, mode: "insensitive" } },
+        { country: { contains: q, mode: "insensitive" } },
+        { platform: { contains: q, mode: "insensitive" } },
+        { tags: { has: q } }
+      ] } : {},
+      category ? { category } : {},
+      platform ? { platform } : {},
+      country ? { country } : {},
+      goal ? { OR: [
+        { category: { contains: goal, mode: "insensitive" } },
+        { description: { contains: goal, mode: "insensitive" } },
+        { tags: { has: goal } }
+      ] } : {},
+      maxPrice !== null ? { OR: [{ price: null }, { price: { lte: maxPrice } }] } : {},
+      leadTime !== null ? { OR: [{ leadTimeDays: null }, { leadTimeDays: { lte: leadTime } }] } : {},
+      status ? { status: status as ResourceStatus } : mode === "public" ? { status: ResourceStatus.ACTIVE } : {}
+    ]
+  };
 
-  const orderBy =
-    sort === "title"
-      ? Prisma.raw(`"title"`)
-      : sort === "category"
-        ? Prisma.raw(`"category"`)
-        : Prisma.raw(`"createdAt"`);
-  const orderDirection = direction === "asc" ? Prisma.raw("ASC") : Prisma.raw("DESC");
-
-  let data: Resource[] = [];
-  let total = 0;
-
-  if (shouldUseFullText) {
-    let conditionsSql = Prisma.sql`to_tsvector('simple', "title" || ' ' || "description" || ' ' || coalesce(array_to_string("tags", ' '), '')) @@ plainto_tsquery('simple', ${q})`;
-
-    if (category) conditionsSql = Prisma.sql`${conditionsSql} AND "category" = ${category}`;
-    if (platform) conditionsSql = Prisma.sql`${conditionsSql} AND "platform" = ${platform}`;
-    if (country) conditionsSql = Prisma.sql`${conditionsSql} AND "country" = ${country}`;
-    if (goal) conditionsSql = Prisma.sql`${conditionsSql} AND ("category" ILIKE ${`%${goal}%`} OR "description" ILIKE ${`%${goal}%`} OR ${goal} = ANY("tags"))`;
-    if (maxPrice !== null) conditionsSql = Prisma.sql`${conditionsSql} AND ("price" IS NULL OR "price" <= ${maxPrice})`;
-    if (leadTime !== null) conditionsSql = Prisma.sql`${conditionsSql} AND ("leadTimeDays" IS NULL OR "leadTimeDays" <= ${leadTime})`;
-
-    if (status) {
-      conditionsSql = Prisma.sql`${conditionsSql} AND "status" = ${status}`;
-    } else if (mode === "public") {
-      conditionsSql = Prisma.sql`${conditionsSql} AND "status" = 'ACTIVE'`;
-    }
-
-    const whereSql = Prisma.sql`WHERE ${conditionsSql}`;
-    const orderSql = Prisma.sql`ORDER BY ${orderBy} ${orderDirection}`;
-
-    const [rows, counts] = await Promise.all([
-      prisma.$queryRaw<Resource[]>(Prisma.sql`SELECT * FROM "Resource" ${whereSql} ${orderSql} LIMIT ${take} OFFSET ${skip}`),
-      prisma.$queryRaw<{ count: number }[]>(Prisma.sql`SELECT COUNT(*)::int as count FROM "Resource" ${whereSql}`)
-    ]);
-    data = rows;
-    total = Number(counts?.[0]?.count ?? 0);
-  } else {
-    const where = {
-      AND: [
-        category ? { category } : {},
-        platform ? { platform } : {},
-        country ? { country } : {},
-        goal ? { OR: [
-          { category: { contains: goal, mode: "insensitive" as const } },
-          { description: { contains: goal, mode: "insensitive" as const } },
-          { tags: { has: goal } }
-        ] } : {},
-        maxPrice !== null ? { OR: [{ price: null }, { price: { lte: maxPrice } }] } : {},
-        leadTime !== null ? { OR: [{ leadTimeDays: null }, { leadTimeDays: { lte: leadTime } }] } : {},
-        status ? { status: status as ResourceStatus } : mode === "public" ? { status: ResourceStatus.ACTIVE } : {}
-      ]
-    };
-
-    const [rows, counts] = await Promise.all([
-      prisma.resource.findMany({
-        where,
-        orderBy:
-          sort === "title"
-            ? { title: direction }
-            : sort === "category"
-              ? { category: direction }
-              : { createdAt: direction },
-        skip,
-        take
-      }),
-      prisma.resource.count({ where })
-    ]);
-    data = rows;
-    total = counts;
-  }
+  const [data, total] = await Promise.all([
+    prisma.resource.findMany({
+      where,
+      orderBy:
+        sort === "title"
+          ? { title: direction }
+          : sort === "category"
+            ? { category: direction }
+            : { createdAt: direction },
+      skip,
+      take
+    }),
+    prisma.resource.count({ where })
+  ]);
 
   if (mode === "admin") {
     return NextResponse.json({

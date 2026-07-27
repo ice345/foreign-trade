@@ -1,7 +1,9 @@
 "use client";
 
+import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Globe, Home, Cpu, ShoppingBag, Sparkles, Users, MessageCircle, Megaphone, Video } from "lucide-react";
+import { buildExploreFilterUrl } from "@/lib/explore-filters";
 
 type Option = {
   value: string;
@@ -15,63 +17,49 @@ type Section = {
   options: Option[];
 };
 
-const sections: Section[] = [
-  {
-    key: "country",
-    label: "国家选择",
-    options: [
-      { value: "美国", label: "🇺🇸 美国", icon: <Globe className="h-4 w-4" /> },
-      { value: "英国", label: "🇬🇧 英国", icon: <Globe className="h-4 w-4" /> },
-      { value: "德国", label: "🇩🇪 德国", icon: <Globe className="h-4 w-4" /> },
-      { value: "日本", label: "🇯🇵 日本", icon: <Globe className="h-4 w-4" /> }
-    ]
-  },
-  {
-    key: "platform",
-    label: "平台类型",
-    options: [
-      { value: "Facebook 群组", label: "Facebook 群组", icon: <Users className="h-4 w-4" /> },
-      { value: "Telegram 频道", label: "Telegram 频道", icon: <MessageCircle className="h-4 w-4" /> },
-      { value: "Deal 站编辑", label: "Deal 站编辑", icon: <Megaphone className="h-4 w-4" /> },
-      { value: "TikTok 红人", label: "TikTok 红人", icon: <Video className="h-4 w-4" /> }
-    ]
-  },
-  {
-    key: "category",
-    label: "类目筛选",
-    options: [
-      { value: "家居", label: "家居", icon: <Home className="h-4 w-4" /> },
-      { value: "电子", label: "电子", icon: <Cpu className="h-4 w-4" /> },
-      { value: "服饰", label: "服饰", icon: <ShoppingBag className="h-4 w-4" /> },
-      { value: "美妆", label: "美妆", icon: <Sparkles className="h-4 w-4" /> }
-    ]
-  }
-];
+type Props = {
+  facets: { countries: string[]; platforms: string[]; categories: string[] }
+}
 
-export default function MarketFilters() {
+function sectionIcon(key: string, value: string) {
+  if (key === "country") return <Globe className="h-4 w-4" />
+  if (key === "platform") {
+    if (value.includes("Facebook")) return <Users className="h-4 w-4" />
+    if (value.includes("Telegram")) return <MessageCircle className="h-4 w-4" />
+    if (value.includes("TikTok")) return <Video className="h-4 w-4" />
+    return <Megaphone className="h-4 w-4" />
+  }
+  if (value.includes("家居")) return <Home className="h-4 w-4" />
+  if (value.includes("电子")) return <Cpu className="h-4 w-4" />
+  if (value.includes("服饰")) return <ShoppingBag className="h-4 w-4" />
+  return <Sparkles className="h-4 w-4" />
+}
+
+export default function MarketFilters({ facets }: Props) {
   const router = useRouter();
   const params = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const sections: Section[] = [
+    { key: "country", label: "国家选择", options: facets.countries.map((value) => ({ value, label: value, icon: sectionIcon("country", value) })) },
+    { key: "platform", label: "平台类型", options: facets.platforms.map((value) => ({ value, label: value, icon: sectionIcon("platform", value) })) },
+    { key: "category", label: "类目筛选", options: facets.categories.map((value) => ({ value, label: value, icon: sectionIcon("category", value) })) }
+  ];
 
   const toggleParam = (key: string, value: string) => {
-    const search = new URLSearchParams(params.toString());
-    if (search.get(key) === value) {
-      search.delete(key);
-    } else {
-      search.set(key, value);
-    }
-    router.push(`/explore?${search.toString()}`);
+    const href = buildExploreFilterUrl(new URLSearchParams(params.toString()), key, value)
+    startTransition(() => router.push(href, { scroll: false }));
   };
 
   const clearAll = () => {
-    router.push("/explore");
+    startTransition(() => router.push("/explore", { scroll: false }));
   };
 
   return (
     <aside className="card sticky top-24 space-y-6 border-white/5 bg-panel/50 p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">筛选条件</h3>
-        <button onClick={clearAll} className="text-xs text-white/50 hover:text-white">
-          清除
+        <button type="button" onClick={clearAll} disabled={isPending} className="text-xs text-white/50 hover:text-white disabled:opacity-50">
+          {isPending ? "更新中" : "清除"}
         </button>
       </div>
 
@@ -85,13 +73,16 @@ export default function MarketFilters() {
               const active = params.get(section.key) === option.value;
               return (
                 <button
+                  type="button"
                   key={option.value}
                   onClick={() => toggleParam(section.key, option.value)}
+                  aria-pressed={active}
+                  disabled={isPending}
                   className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs transition-all ${
                     active
                       ? "border-accent/40 bg-accent/10 text-white"
                       : "border-white/10 bg-white/5 text-white/60 hover:border-white/30 hover:text-white"
-                  }`}
+                  } disabled:cursor-wait disabled:opacity-60`}
                 >
                   {option.icon}
                   <span>{option.label}</span>

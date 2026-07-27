@@ -32,7 +32,7 @@ export default function ExploreClient() {
     pageSize: String(PAGE_SIZE)
   }).toString();
 
-  const { data, isError, error } = useQuery({
+  const { data, isError, error, isFetching } = useQuery({
     queryKey: ["resources", filterKey, page],
     queryFn: () => api.resources(`?${queryString}`)
   });
@@ -79,10 +79,10 @@ export default function ExploreClient() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-xs text-white/50">共 {total} 个资源</div>
+    <div className="space-y-6" aria-busy={isFetching}>
+      <div className="flex items-center justify-between gap-3 text-xs text-white/50"><span>共 {total} 个资源</span>{isFetching && <span className="text-[var(--accent-soft)]">正在筛选...</span>}</div>
       {isError && <div role="alert" className="resource-surface border-[rgba(240,125,132,0.45)] p-5 text-sm text-[var(--danger)]">资源加载失败：{error instanceof Error ? error.message : "请刷新后重试"}</div>}
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className={`grid gap-6 transition-opacity md:grid-cols-2 xl:grid-cols-3 ${isFetching ? "opacity-55" : "opacity-100"}`}>
         {resources.map((resource) => (
           <ResourceCard
             key={resource.id}
@@ -94,7 +94,7 @@ export default function ExploreClient() {
           />
         ))}
       </div>
-      {!isError && !resources.length && <div className="empty-state">暂时没有符合当前筛选条件的资源</div>}
+      {!isError && !isFetching && !resources.length && <div className="empty-state">暂时没有符合当前筛选条件的资源</div>}
       <Pagination
         page={page}
         pageSize={PAGE_SIZE}

@@ -33,7 +33,8 @@ const adminLinks = [
   { href: "/admin/users", label: "用户管理" },
   { href: "/admin/categories", label: "分类管理" },
   { href: "/admin/tags", label: "标签管理" },
-  { href: "/admin/payments", label: "历史账务" }
+  { href: "/admin/payments", label: "历史账务" },
+  { href: "/admin/help", label: "使用帮助" }
 ]
 
 export default function SiteNav() {
