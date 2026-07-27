@@ -72,7 +72,7 @@ export default function ExploreClient() {
       await api.addToCart(id);
       queryClient.invalidateQueries({ queryKey: ["cartIds"] });
       queryClient.invalidateQueries({ queryKey: ["cart"] });
-      toast.success("已加入购物车");
+      toast.success("已加入需求清单");
     } catch {
       toast.error("请先登录");
     }

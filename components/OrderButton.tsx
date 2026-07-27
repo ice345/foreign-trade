@@ -103,7 +103,7 @@ export default function OrderButton({
             >
               <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
                 <div>
-                  <h3 className="text-xl font-semibold">极简下单工作台</h3>
+                  <h3 className="text-xl font-semibold">推广需求工作台</h3>
                   <p className="text-xs text-white/50">
                     {resourceTitle ?? "推广资源"} · 提交后进入审核流程
                   </p>

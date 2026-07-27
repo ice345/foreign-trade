@@ -89,7 +89,7 @@ export default function SiteNav() {
 
         <div className="flex items-center gap-4">
           {user && (
-            <Link href="/cart" className="relative text-white/70 transition hover:text-white">
+            <Link href="/cart" className="relative text-white/70 transition hover:text-white" aria-label="需求清单" title="需求清单">
               <ShoppingCart size={20} />
               {cartCount > 0 && (
                 <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white">

@@ -6,9 +6,9 @@ import SearchBar from "@/components/SearchBar"
 import ResourceCard from "@/components/ResourceCard"
 import HomeFilters from "@/components/HomeFilters"
 import { prisma } from "@/lib/prisma"
-import { serializeResourceSummary } from "@/lib/serializers"
 import { buildMetadata } from "@/lib/metadata"
 import { safeJsonLd } from "@/lib/security"
+import { getHomeRecommendations } from "@/lib/home-recommendations"
 
 export const dynamic = "force-dynamic"
 
@@ -21,11 +21,7 @@ async function getHomeData() {
   try {
     const [resourceCount, resources, countries, categoryGroups] = await Promise.all([
       prisma.resource.count({ where: { status: "ACTIVE" } }),
-      prisma.resource.findMany({
-        where: { status: "ACTIVE" },
-        orderBy: [{ followers: "desc" }, { createdAt: "desc" }],
-        take: 6
-      }),
+      getHomeRecommendations(6),
       prisma.resource.findMany({
         where: { status: "ACTIVE" },
         distinct: ["country"],
@@ -39,14 +35,6 @@ async function getHomeData() {
       })
     ])
 
-    const ids = resources.map((resource) => resource.id)
-    const reviewStats = ids.length ? await prisma.review.groupBy({
-      by: ["resourceId"],
-      where: { resourceId: { in: ids } },
-      _avg: { rating: true },
-      _count: true
-    }) : []
-    const reviewMap = new Map(reviewStats.map((item) => [item.resourceId, item]))
     const categories = categoryGroups
       .map((item) => ({ name: item.category, count: item._count._all }))
       .sort((a, b) => b.count - a.count)
@@ -57,14 +45,7 @@ async function getHomeData() {
       categoryCount: categories.length,
       countries: countries.map((item) => item.country),
       categories,
-      resources: resources.map((resource) => {
-        const stats = reviewMap.get(resource.id)
-        return {
-          ...serializeResourceSummary(resource),
-          averageRating: stats?._avg.rating ?? null,
-          reviewCount: stats?._count ?? 0
-        }
-      })
+      resources
     }
   } catch (error) {
     console.error("[Homepage Data Error]", error)
@@ -138,7 +119,7 @@ export default async function HomePage() {
 
       <section className="page-container py-20">
         <div className="mb-9 flex items-end justify-between gap-5">
-          <div><p className="text-sm text-[var(--accent-soft)]">经过筛选的渠道</p><h2 className="mt-2 text-3xl font-semibold md:text-4xl">热门推广资源</h2></div>
+          <div><p className="text-sm text-[var(--accent-soft)]">动态推荐</p><h2 className="mt-2 text-3xl font-semibold md:text-4xl">热门推广资源</h2><p className="mt-3 text-sm text-[var(--text-secondary)]">综合近期需求、履约进度、评价质量、资源规模和你的历史偏好，每日动态更新。</p></div>
           <Link href="/explore" className="hidden items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-white sm:flex">查看全部<ArrowRight className="h-4 w-4" /></Link>
         </div>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">

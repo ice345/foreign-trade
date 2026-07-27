@@ -234,7 +234,7 @@ export default function OrderAdminTable() {
               </div>
               <div>
                 <h3 className="font-semibold">确认取消订单</h3>
-                <p className="text-xs text-white/50">订单会保留记录，未确认订单会自动退款</p>
+                <p className="text-xs text-white/50">订单会保留记录；仅历史钱包扣款订单会生成退款流水</p>
               </div>
             </div>
             <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">

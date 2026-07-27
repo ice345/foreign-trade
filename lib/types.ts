@@ -20,6 +20,7 @@ export type ResourceSummary = {
   averageRating?: number | null;
   reviewCount?: number;
   leadTimeDays?: number | null;
+  recommendationReason?: string;
 };
 
 export type ResourceDetail = ResourceSummary & {

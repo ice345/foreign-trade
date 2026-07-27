@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Bookmark, Clock3, MapPin, ShoppingCart, Users } from "lucide-react"
+import { Bookmark, Clock3, MapPin, Sparkles, ShoppingCart, Users } from "lucide-react"
 import type { ResourceSummary } from "@/lib/types"
 import OrderButton from "@/components/OrderButton"
 import AverageRating from "@/components/AverageRating"
@@ -54,6 +54,11 @@ export default function ResourceCard({
         </div>
 
         <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-[var(--text-secondary)]">{resource.description}</p>
+        {resource.recommendationReason && (
+          <p className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-[var(--accent-muted)] px-2.5 py-1 text-xs text-[var(--accent-soft)]">
+            <Sparkles className="h-3 w-3" />{resource.recommendationReason}
+          </p>
+        )}
         <div className="mt-3"><AverageRating rating={resource.averageRating} count={resource.reviewCount} /></div>
 
         <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-[var(--border)] py-4 text-xs">

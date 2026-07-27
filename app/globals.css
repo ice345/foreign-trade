@@ -84,6 +84,50 @@ textarea:focus-visible {
   box-shadow: var(--shadow-elevated);
 }
 
+.admin-panel,
+.metric-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: linear-gradient(145deg, rgba(21, 27, 40, 0.98), rgba(13, 18, 29, 0.98));
+  box-shadow: var(--shadow-soft);
+}
+
+.metric-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-panel::after {
+  position: absolute;
+  right: -18px;
+  bottom: -28px;
+  width: 88px;
+  height: 88px;
+  border: 1px solid rgba(129, 148, 255, 0.14);
+  border-radius: 50%;
+  content: "";
+}
+
+.dashboard-hero {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: linear-gradient(112deg, #101827 0%, #111a2d 54%, #172141 100%);
+  box-shadow: var(--shadow-elevated);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  background: var(--accent-muted);
+  padding: 2px 8px;
+  color: var(--accent-soft);
+  font-size: 11px;
+}
+
 @supports (backdrop-filter: blur(20px)) {
   .glass-surface {
     background: var(--glass);
