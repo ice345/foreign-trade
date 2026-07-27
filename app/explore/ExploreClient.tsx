@@ -32,7 +32,7 @@ export default function ExploreClient() {
     pageSize: String(PAGE_SIZE)
   }).toString();
 
-  const { data } = useQuery({
+  const { data, isError, error } = useQuery({
     queryKey: ["resources", filterKey, page],
     queryFn: () => api.resources(`?${queryString}`)
   });
@@ -81,6 +81,7 @@ export default function ExploreClient() {
   return (
     <div className="space-y-6">
       <div className="text-xs text-white/50">共 {total} 个资源</div>
+      {isError && <div role="alert" className="resource-surface border-[rgba(240,125,132,0.45)] p-5 text-sm text-[var(--danger)]">资源加载失败：{error instanceof Error ? error.message : "请刷新后重试"}</div>}
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {resources.map((resource) => (
           <ResourceCard
@@ -93,6 +94,7 @@ export default function ExploreClient() {
           />
         ))}
       </div>
+      {!isError && !resources.length && <div className="empty-state">暂时没有符合当前筛选条件的资源</div>}
       <Pagination
         page={page}
         pageSize={PAGE_SIZE}

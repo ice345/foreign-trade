@@ -7,6 +7,7 @@ import { parsePagination } from "@/lib/pagination";
 import { serializeResource, serializeResourceSummary } from "@/lib/serializers";
 import { isInternalFileUrl } from "@/lib/security";
 import { fileIdFromUrl, validateFileReference } from "@/lib/storage";
+import { parseOptionalLeadTime, parseOptionalMaxPrice } from "@/lib/resource-filters";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -21,10 +22,8 @@ export async function GET(request: Request) {
   const status = mode === "admin" && ["ACTIVE", "HIDDEN", "SOLD_OUT"].includes(requestedStatus)
     ? requestedStatus
     : "";
-  const maxPriceRaw = Number(searchParams.get("maxPrice"));
-  const leadTimeRaw = Number(searchParams.get("leadTime"));
-  const maxPrice = Number.isFinite(maxPriceRaw) && maxPriceRaw >= 0 ? Math.min(maxPriceRaw, 10_000_000) : null;
-  const leadTime = Number.isFinite(leadTimeRaw) && leadTimeRaw > 0 ? Math.min(Math.floor(leadTimeRaw), 365) : null;
+  const maxPrice = parseOptionalMaxPrice(searchParams.get("maxPrice"));
+  const leadTime = parseOptionalLeadTime(searchParams.get("leadTime"));
   const sort = searchParams.get("sort") ?? "createdAt";
   const direction = searchParams.get("direction") === "asc" ? "asc" : "desc";
 

@@ -23,7 +23,7 @@ export default function SearchClient() {
     pageSize: String(PAGE_SIZE)
   }).toString();
 
-  const { data } = useQuery({
+  const { data, isError, error } = useQuery({
     queryKey: ["search", query, page],
     queryFn: () => api.resources(`?${queryString}`)
   });
@@ -70,6 +70,7 @@ export default function SearchClient() {
   return (
     <div className="space-y-6">
       <div className="text-xs text-white/50">共 {total} 个结果</div>
+      {isError && <div role="alert" className="resource-surface border-[rgba(240,125,132,0.45)] p-5 text-sm text-[var(--danger)]">搜索加载失败：{error instanceof Error ? error.message : "请刷新后重试"}</div>}
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {resources.map((resource) => (
           <ResourceCard
@@ -82,6 +83,7 @@ export default function SearchClient() {
           />
         ))}
       </div>
+      {!isError && !resources.length && <div className="empty-state">没有找到匹配的资源</div>}
       <Pagination
         page={page}
         pageSize={PAGE_SIZE}
